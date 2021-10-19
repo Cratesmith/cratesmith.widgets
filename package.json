@@ -1,6 +1,6 @@
 {
 	"name": "com.cratesmith.widgets",
-	"displayName": "Widgets",
+	"displayName": "Cratesmith.Widgets",
 	"description": "A declarative ugui api",
 	"version": "0.0.1",
 	"unity": "2020.3",
