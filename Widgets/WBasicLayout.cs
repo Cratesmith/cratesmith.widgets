@@ -71,10 +71,10 @@ namespace com.cratesmith.widgets
     public class WBasicLayout : WBasicLayout<SBasicLayout>
     {
     }
-
+    
     public class WBasicLayout<TState> 
         : WidgetBehaviour<TState> 
-        where TState : struct, IWidgetStateLayoutGroup<WidgetBasicLayout>, IEquatable<TState>
+        where TState : struct, IWidgetStateLayoutGroup<WidgetBasicLayout>//, IEquatable<TState>
     {
         [SerializeField]                          bool             m_AutoDisableLayoutGroup = true;
         [ReadOnlyField, SerializeField] protected BasicLayoutGroup m_BasicLayoutGroup;
@@ -124,4 +124,5 @@ namespace com.cratesmith.widgets
             return needsLayoutGroup;
         }
     }
+
 }

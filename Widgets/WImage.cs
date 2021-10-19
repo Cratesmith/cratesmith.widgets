@@ -80,7 +80,7 @@ namespace com.cratesmith.widgets
     
     public class WImage<TState> 
         : WBasicLayout<TState> 
-        where TState: struct, IWidgetStateImage, IEquatable<TState>
+        where TState: struct, IWidgetStateImage//, IEquatable<TState>
     {
         [SerializeField, ReadOnlyField] protected Image m_Image;
         public Image Image => m_Image;

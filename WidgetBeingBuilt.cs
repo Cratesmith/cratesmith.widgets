@@ -31,7 +31,7 @@ namespace com.cratesmith.widgets
     {
         public static WidgetBeingBuilt<TWidget> State<TWidget, TState>(this WidgetBeingBuilt<TWidget> _widgetBuild, in TState _state, bool _forceRebuild=false)
             where TWidget:WidgetBehaviour<TState>
-            where TState:struct, IWidgetState, IEquatable<TState>
+            where TState:struct, IWidgetState//, IEquatable<TState>
         {
             if (Is.NotNull(_widgetBuild.widget))
                 _widgetBuild.widget.SetState(_state, _forceRebuild);

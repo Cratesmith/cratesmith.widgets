@@ -15,7 +15,7 @@ namespace com.cratesmith.widgets
     /// <typeparam name="TState"></typeparam>
     public abstract class WidgetBehaviour<TState> 
         : WidgetBehaviour
-        where TState:struct, IWidgetState, IEquatable<TState>
+        where TState:struct, IWidgetState//, IEquatable<TState>
     {
         /// <summary>
         /// Current state of the widget.
@@ -29,7 +29,10 @@ namespace com.cratesmith.widgets
         /// </summary>
         public void SetState(in TState _state, bool _forceDirty=false)
         {
-            if (_state.Equals(State) && !_forceDirty) return;
+            if (!_forceDirty 
+                && typeof(IEquatable<TState>).IsAssignableFrom(typeof(TState)) 
+                && _state.Equals(State) && !_forceDirty) return;
+            
             State = _state;
             SetDirty();
         }

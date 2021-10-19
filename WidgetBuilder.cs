@@ -48,7 +48,7 @@ namespace com.cratesmith.widgets
 
         public WidgetBeingBuilt<TWidget> Widget<TWidget, TState>(TWidget _prefab, in TState _state)
             where TWidget : WidgetBehaviour<TState> 
-            where TState : struct, IWidgetState, IEquatable<TState>
+            where TState : struct, IWidgetState//, IEquatable<TState>
         {
             var widget = m_Children?.Widget(_prefab, null, default, m_ParentWidget, m_OwnerWidget);
             return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget).State(_state);
@@ -56,7 +56,7 @@ namespace com.cratesmith.widgets
 
         public WidgetBeingBuilt<TWidget> Widget<TWidget, TState>(TWidget _prefab, in WidgetContext _context, in TState _state)
             where TWidget : WidgetBehaviour<TState> 
-            where TState : struct, IWidgetState, IEquatable<TState>
+            where TState : struct, IWidgetState//, IEquatable<TState>
         {
             var widget = m_Children?.Widget(_prefab, null, _context, m_ParentWidget, m_OwnerWidget);
             return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget).State(_state);
@@ -86,7 +86,7 @@ namespace com.cratesmith.widgets
         
         public WidgetBeingBuilt<TWidget> Widget<TWidget, TState>(WidgetPrefab<TWidget> _prefab, in TState _state)
             where TWidget : WidgetBehaviour<TState> 
-            where TState : struct, IWidgetState, IEquatable<TState>
+            where TState : struct, IWidgetState//, IEquatable<TState>
         {
             var widget = m_Children?.Widget(_prefab.widget, _prefab.prefab, default, m_ParentWidget, m_OwnerWidget);
             return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget).State(_state);
@@ -94,7 +94,7 @@ namespace com.cratesmith.widgets
 
         public WidgetBeingBuilt<TWidget> Widget<TWidget, TState>(WidgetPrefab<TWidget> _prefab, in WidgetContext _context, in TState _state)
             where TWidget : WidgetBehaviour<TState> 
-            where TState : struct, IWidgetState, IEquatable<TState>
+            where TState : struct, IWidgetState//, IEquatable<TState>
         {
             var widget = m_Children?.Widget(_prefab.widget, _prefab.prefab, _context, m_ParentWidget, m_OwnerWidget);
             return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget).State(_state);

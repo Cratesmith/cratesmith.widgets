@@ -89,6 +89,7 @@ public class WProgressBar : WBasicLayout<SProgressBar>
         {
             m_LayoutElement.preferredHeight = 16;
             m_LayoutElement.flexibleWidth = 1;
+            m_LayoutElement.minWidth = 32;
         }
         
         base.Awake();
