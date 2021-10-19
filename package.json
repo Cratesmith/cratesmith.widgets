@@ -2,7 +2,7 @@
 	"name": "com.cratesmith.widgets",
 	"displayName": "Widgets",
 	"description": "A declarative ugui api",
-	"version": "0.0.0.1",
+	"version": "0.0.1",
 	"unity": "2020.3",
 	"license": "MIT",
 	"repository": {
