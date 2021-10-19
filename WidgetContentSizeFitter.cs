@@ -8,6 +8,15 @@ namespace com.cratesmith.widgets
         public Optional<ContentSizeFitter.FitMode> horizontalFit;
         public Optional<ContentSizeFitter.FitMode> verticalFit;
 
+        public WidgetContentSizeFitter AsDefault()
+        {
+            return new WidgetContentSizeFitter()
+            {
+                horizontalFit = horizontalFit.AsDefault(),
+                verticalFit = verticalFit.AsDefault()
+            };
+        }
+        
         public bool Apply(ContentSizeFitter to, ContentSizeFitter defaults, bool usesTypePrefab)
         {
             var _horizontalFit = horizontalFit.GetValue(defaults.horizontalFit,usesTypePrefab);

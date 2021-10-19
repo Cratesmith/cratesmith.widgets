@@ -14,6 +14,20 @@ namespace com.cratesmith.widgets
         public Optional<float> flexibleWidth;
         public Optional<float> flexibleHeight;
 
+        public WidgetLayoutElement AsDefault()
+        {
+            return new WidgetLayoutElement()
+            {
+                ignoreLayout = ignoreLayout.AsDefault(),
+                minWidth = minWidth.AsDefault(),
+                minHeight = minHeight.AsDefault(),
+                preferredWidth = preferredWidth.AsDefault(),
+                preferredHeight = preferredHeight.AsDefault(),
+                flexibleWidth = flexibleWidth.AsDefault(),
+                flexibleHeight = flexibleHeight.AsDefault(),
+            };
+        }
+        
         public bool Apply(LayoutElement to, LayoutElement defaults, bool usesTypePrefab)
         {
             bool changed = false;

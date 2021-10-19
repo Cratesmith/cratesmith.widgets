@@ -34,6 +34,24 @@ namespace com.cratesmith.widgets
                 childAlignment = _childAlignment
             };
         }
+
+        public WidgetBasicLayout AsDefault()
+        {
+            return new WidgetBasicLayout()
+            {
+                isVertical = this.isVertical.AsDefault(),
+                padding = this.padding.AsDefault(),
+                spacing = this.spacing.AsDefault(),
+                childAlignment = this.childAlignment.AsDefault(),
+                childControlWidth = this.childControlWidth.AsDefault(),
+                childControlHeight = this.childControlHeight.AsDefault(),
+                childForceExpandWidth = this.childForceExpandWidth.AsDefault(),
+                childForceExpandHeight = this.childForceExpandHeight.AsDefault(),
+                reverseArrangement = this.reverseArrangement.AsDefault(),
+                childScaleHeight = this.childScaleHeight.AsDefault(),
+                childScaleWidth = this.childScaleWidth.AsDefault(),
+            };
+        }
         
         public bool Apply(BasicLayoutGroup to, BasicLayoutGroup defaults, bool usesTypePrefab)
         {

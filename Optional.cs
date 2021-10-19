@@ -14,7 +14,7 @@ namespace com.cratesmith.widgets
     {
         public T value;
         public OptionalUsage usage;
-         
+        
         public static implicit operator Optional<T>(in T _value) => new Optional<T>() {value = _value, usage = OptionalUsage.Always};
         public static implicit operator T(in Optional<T> _this) => _this.value;
         
@@ -31,6 +31,15 @@ namespace com.cratesmith.widgets
                 default:
                     return _valueIfUnused;
             }
+        }
+
+        public Optional<T> AsDefault()
+        {
+            return new Optional<T>()
+            {
+                value = this.value,
+                usage = OptionalUsage.AsDefault
+            };
         }
 
         public bool Equals(Optional<T> other)

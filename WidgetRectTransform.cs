@@ -13,6 +13,19 @@ namespace com.cratesmith.widgets
         public Optional<Vector2> sizeDelta;
         public Optional<Vector2> pivot;
 
+        public WidgetRectTransform AsDefault()
+        {
+            return new WidgetRectTransform()
+            {
+                localScale = this.localScale.AsDefault(),
+                anchorMin = this.anchorMin.AsDefault(),
+                anchorMax = this.anchorMax.AsDefault(),
+                anchoredPosition = this.anchoredPosition.AsDefault(),
+                sizeDelta = this.sizeDelta.AsDefault(),
+                pivot = this.pivot.AsDefault()
+            };
+        }
+
         public bool Apply(RectTransform to, RectTransform defaults, bool usesTypePrefab)
         {
             bool changed = false;
