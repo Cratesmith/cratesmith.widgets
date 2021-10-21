@@ -38,7 +38,9 @@ namespace com.cratesmith.widgets
             return new Optional<T>()
             {
                 value = this.value,
-                usage = OptionalUsage.AsDefault
+                usage = this.usage!=OptionalUsage.Never 
+                    ? OptionalUsage.AsDefault
+                    : OptionalUsage.Never
             };
         }
 
