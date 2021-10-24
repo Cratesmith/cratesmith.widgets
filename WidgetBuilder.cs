@@ -26,7 +26,7 @@ namespace com.cratesmith.widgets
                 ? ((ISecret)m_ParentWidget).InternalChildren
                 : ((ISecret)m_ParentWidget).OwnerChildren;
 
-            m_Children.Begin();
+            m_Children.Begin(_parent,_owner);
         }
 
         public interface ISecret
@@ -106,7 +106,7 @@ namespace com.cratesmith.widgets
             if (m_Children==null)
                 return;
             
-            m_Children.End();
+            m_Children.End(m_ParentWidget, m_OwnerWidget);
             if (m_Children.OrderChanged)
             {
                 ((ISecret)m_ParentWidget).SortChildren();

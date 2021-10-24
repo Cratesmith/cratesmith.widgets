@@ -1,10 +1,21 @@
+#define WIDGETS_LOG_ERROR
+#define WIDGETS_LOG_WARNING
+#define WIDGETS_LOG_INFO
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#define WIDGETS_LOG_DEBUGGING
+#define WIDGETS_LOG_INTERNAL
+#endif
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using Debug = UnityEngine.Debug;
 
 namespace com.cratesmith.widgets
 {
@@ -34,6 +45,7 @@ namespace com.cratesmith.widgets
                 && _state.Equals(State) && !_forceDirty) return;
             
             State = _state;
+            LogInternal($"Widget {name} state changed to [{State}]");
             SetDirty();
         }
 
@@ -176,12 +188,13 @@ namespace com.cratesmith.widgets
 
             static HashSet<WidgetContext> s_RemoveContexts = new HashSet<WidgetContext>();
 
-            public void Begin()
-            {
+            public void Begin(WidgetBehaviour _parent, WidgetBehaviour _owner)
+             {
+                _parent.LogInternal($"Begin children widget:{_parent.name} owner:{_owner.name}");
                 if (EditingIndex >= 0)
                 {
-                    End();
-                    Debug.LogWarning("Begin called twice! (ending for safety)");
+                    _parent.LogWarning($"BeginChildren called twice for widget:{_parent.name}. You probably forgot to call EndChildren()/dispose its WidgetBuilder (which will be in this callstack)");
+                    End(_parent, _owner);
                 }
 
                 foreach (var group in ContextGroups.Values)
@@ -238,7 +251,7 @@ namespace com.cratesmith.widgets
                 result.prefabInstance.m_WidgetIndex = EditingIndex;
                 ++group.numTouched;
                 StepEditingIndex();
-                
+                /*
                 if (m_ParentWidget.DebugLogging.HasFlag(LogLevel.Internal))
                 {
                     var sb = new StringBuilder();
@@ -260,12 +273,12 @@ namespace com.cratesmith.widgets
                     sb.Append($"\n{result}");
                     m_ParentWidget.LogInternal( sb.ToString());
                     Debug.Log(sb);
-                }
+                }*/
 
                 return result.widget;
             }
 
-            public void End()
+            public void End(WidgetBehaviour _parent, WidgetBehaviour _owner)
             {
                 if (EditingIndex == -1)
                 {
@@ -350,6 +363,8 @@ namespace com.cratesmith.widgets
 
                 // mark us as done
                 EditingIndex = -1;
+                
+                _parent.LogInternal($"End children widget:{_parent.name} owner:{_owner.name}");
             }
             
             void StepEditingIndex()
@@ -437,6 +452,7 @@ namespace com.cratesmith.widgets
                         
             IsDirty = false;
             HasRefreshed = true;
+            LogInternal($"Widget {name} refreshed");
         }
 
         /// <summary>
@@ -468,6 +484,7 @@ namespace com.cratesmith.widgets
                     WidgetManager.MarkForRebuild(current);
                 } 
             }
+            LogInternal($"Widget {name} set dirty");
             return true;
         }
         
@@ -693,14 +710,26 @@ namespace com.cratesmith.widgets
             return $"{name}:{WidgetIndex}:{(Despawned?"y":(IsDespawning?"n*":"n"))}";
         }
         
+        [Conditional("WIDGETS_LOG_ERROR")]
         public void LogError(string message) => Log(LogLevel.Error, message);
+        
+        [Conditional("WIDGETS_LOG_WARNING")]
         public void LogWarning(string message) => Log(LogLevel.Warning, message);
+        
+        [Conditional("WIDGETS_LOG_INFO")]
         public void LogInfo(string message) => Log(LogLevel.Info, message);
+        
+        [Conditional("WIDGETS_LOG_DEBUGGING")]
         public void LogDebugging(string message) => Log(LogLevel.Debugging, message);
-        public void LogInternal(string message) => Log(LogLevel.Info, message);
+        
+        [Conditional("WIDGETS_LOG_INTERNAL")]
+        public void LogInternal(string message) => Log(LogLevel.Internal, message);
         
         public void Log(LogLevel level, string message)
         {
+            if (!DebugLogging.HasFlag(level)) 
+                return;
+            
             switch (level)
             {
                 case LogLevel.Error:   
