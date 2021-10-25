@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using SubModules.com.cratesmith.widgets;
 using UnityEngine;
 
 namespace com.cratesmith.widgets
@@ -156,6 +158,50 @@ namespace com.cratesmith.widgets
         public static bool operator !=(WidgetRectTransform left, WidgetRectTransform right)
         {
             return !left.Equals(right);
+        }
+        
+        public static WidgetRectTransform ScreenPoint(Vector3 position, Canvas canvas, RectTransform parentTransform, TextAnchor pivot=TextAnchor.MiddleCenter,  Optional<Vector2> size=default, Vector2 offset = default, Vector3 fallbackScreenPoint = default)
+        {
+            position = ScreenToUIPosition(position, canvas, parentTransform, fallbackScreenPoint);
+            var trueOffset = offset + new Vector2(position.x, position.y);
+            return Pivot(pivot, size, trueOffset);
+        }
+        
+        static Vector3 ScreenToUIPosition(Vector3 position, Canvas canvas, RectTransform parentTransform, Vector3 fallbackScreenPoint)
+        {
+            var canvasTransform = (RectTransform)canvas.transform;
+            switch (canvas.renderMode)
+            {
+                case RenderMode.ScreenSpaceOverlay:
+                    position = parentTransform.InverseTransformPoint(position);
+                    break;
+
+                case RenderMode.ScreenSpaceCamera:
+                    position = parentTransform.InverseTransformPoint(canvas.worldCamera.ScreenToWorldPoint(position));
+                    break;
+
+                case RenderMode.WorldSpace:
+                    var plane = new Plane(-canvasTransform.forward, parentTransform.position);
+                    var ray = canvas.worldCamera.ScreenPointToRay(position);
+                    position = plane.Raycast(ray, out var dist)
+                        ? parentTransform.InverseTransformPoint(ray.GetPoint(dist))
+                        : fallbackScreenPoint;
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            return position;
+        }
+
+        public static WidgetRectTransform ScreenRect(in Rect _rect, Canvas canvas, RectTransform parentTransform, in WidgetRectOffset padding=default, in Vector3 fallbackScreenPoint=default)
+        {
+            var a = ScreenToUIPosition(_rect.min.XY_(), canvas, parentTransform, fallbackScreenPoint)+new Vector3(-padding.left, -padding.bottom);
+            var b = ScreenToUIPosition(_rect.max.XY_(), canvas, parentTransform, fallbackScreenPoint)+new Vector3(padding.right, padding.top);
+            var max = Vector3.Max(a, b);
+            var min = Vector3.Min(a, b);
+            var size = max - min;
+            return WidgetRectTransform.Pivot(TextAnchor.MiddleCenter, size.XY(), (a+size*0.5f).XY());
         }
     }
 }

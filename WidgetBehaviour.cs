@@ -218,7 +218,7 @@ namespace com.cratesmith.widgets
                     ? group[group.numTouched]
                     : default;
                 
-                bool isNew = false;
+                //bool isNew = false;
                 WidgetChild<TWidget> result = default;
                 if (WidgetManager.IsWidget(existingChild.widget, out TWidget widget) 
                     && !existingChild.prefabInstance.IsDespawning
@@ -232,7 +232,7 @@ namespace com.cratesmith.widgets
                 }
                 else
                 {
-                    isNew = true;
+                    //isNew = true;
                     var spawn = WidgetManager.SpawnChild(_prefab,
                                                       _rootPrefab,
                                                       m_ParentWidget,
@@ -440,6 +440,11 @@ namespace com.cratesmith.widgets
         public bool UsesTypePrefab { get; private set; }
         
         /// <summary>
+        /// The canvas this widget is parented to
+        /// </summary>
+        public Canvas Canvas { get; private set; }
+        
+        /// <summary>
         /// Refresh this widget based on it's new state
         /// As widgets are usually pooled this function should ensure that
         /// no previous state remains after this method is called.
@@ -534,6 +539,7 @@ namespace com.cratesmith.widgets
             HasRefreshed = false;
             IsDespawning = false;
             Despawned = false;
+            Canvas = Is.Spawned(_parentWidget) ? _parentWidget.Canvas:GetComponentInParent<Canvas>();
 
             for (var i = 0; i < m_StaticChildren.Count; i++)
             {
@@ -603,6 +609,17 @@ namespace com.cratesmith.widgets
             }
 #endif
         }
+
+        protected virtual void Start()
+        {
+            // this handles the case non-spawned root widgets that wouldn't have Init called otherwise
+            if (!HasRefreshed && !OwnerWidget)
+            {
+                var prefab = WidgetManager.LookupPrefab(this.GetType());
+                ((WidgetBuilder.ISecret)this).Init(prefab,null, this, this.AsContextReference());
+            }
+        }
+        
         void BuildStaticChildrenList()
         {
             m_StaticChildren.Clear();
@@ -638,6 +655,7 @@ namespace com.cratesmith.widgets
             Depth = 0;
             HasRefreshed = false;
             IsDirty = false;
+            Canvas = null;
             foreach (var child in m_StaticChildren)
             {
                 if (!Is.NotNull(child)) continue;
