@@ -613,7 +613,7 @@ namespace com.cratesmith.widgets
         protected virtual void Start()
         {
             // this handles the case non-spawned root widgets that wouldn't have Init called otherwise
-            if (!HasRefreshed && !OwnerWidget)
+            if (!HasRefreshed && !Is.NotNull(OwnerWidget))
             {
                 var prefab = WidgetManager.LookupPrefab(this.GetType());
                 ((WidgetBuilder.ISecret)this).Init(prefab,null, this, this.AsContextReference());
