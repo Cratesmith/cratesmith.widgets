@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using com.cratesmith.widgets;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace com.cratesmith.widgets
@@ -171,6 +173,9 @@ namespace com.cratesmith.widgets
         void HandleOnClick()
         {
             State.onClick?.Invoke(this);
+            SetStatus<Clicked>();
         }
     }
 }
+
+

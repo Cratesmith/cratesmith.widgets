@@ -613,7 +613,7 @@ namespace com.cratesmith.widgets
         protected virtual void Start()
         {
             // this handles the case non-spawned root widgets that wouldn't have Init called otherwise
-            if (!HasRefreshed && !OwnerWidget)
+            if (!HasRefreshed && Is.NotNull(OwnerWidget))
             {
                 var prefab = WidgetManager.LookupPrefab(this.GetType());
                 ((WidgetBuilder.ISecret)this).Init(prefab,null, this, this.AsContextReference());
@@ -762,6 +762,25 @@ namespace com.cratesmith.widgets
                     Debug.Log(message,this);
                     return;
             }
+        }
+
+        public bool HasStatus<T>() where T : IWidgetStatus
+        {
+            return true;
+        }
+        
+        public bool HasStatus<T>(out T status) where T : IWidgetStatus
+        {
+            status = default;
+            return true;
+        }
+
+        public void SetStatus<T>(in T status=default) where T : IWidgetStatus
+        {
+        }
+
+        public void ClearStatus<T>() where T : IWidgetStatus
+        {
         }
     }
 }

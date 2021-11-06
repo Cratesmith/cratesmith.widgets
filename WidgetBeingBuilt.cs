@@ -25,8 +25,11 @@ namespace com.cratesmith.widgets
         {
             return new WidgetBuilder(widget, owner);
         }
+        
+        public bool HasStatus<T>() where T:IWidgetStatus => widget.HasStatus<T>();
+        public bool HasStatus<T>(out T status) where T:IWidgetStatus => widget.HasStatus<T>(out status);
     }
-    
+
     public static class WidgetBeingBuiltExtensions
     {
         public static WidgetBeingBuilt<TWidget> State<TWidget, TState>(this WidgetBeingBuilt<TWidget> _widgetBuild, in TState _state, bool _forceRebuild=false)

@@ -123,5 +123,9 @@ namespace com.cratesmith.widgets
         {
             EndChildren();
         }
+        
+        public bool HasStatus<T>() where T:IWidgetStatus => m_ParentWidget.HasStatus<T>();
+        public bool HasStatus<T>(out T status) where T:IWidgetStatus => m_ParentWidget.HasStatus<T>(out status);
+
     }
 }
