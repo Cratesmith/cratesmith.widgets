@@ -37,12 +37,14 @@ namespace com.cratesmith.widgets
             var _preferredWidth = preferredWidth.GetValue(defaults.preferredWidth,usesTypePrefab);
             var _preferredHeight = preferredHeight.GetValue(defaults.preferredHeight,usesTypePrefab);
             var _flexibleWidth = flexibleWidth.GetValue(defaults.flexibleWidth,usesTypePrefab);
+            var _flexibleHeight = flexibleHeight.GetValue(defaults.flexibleHeight,usesTypePrefab);
             if(to.ignoreLayout!=_ignoreLayout) {to.ignoreLayout = _ignoreLayout;changed=true;}
             if(!Mathf.Approximately(to.minWidth,_minWidth)) {to.minWidth = _minWidth;changed=true;}
             if(!Mathf.Approximately(to.minHeight,_minHeight)) {to.minHeight = _minHeight;changed=true;}
             if(!Mathf.Approximately(to.preferredWidth,_preferredWidth)) {to.preferredWidth = _preferredWidth;changed=true;}
             if(!Mathf.Approximately(to.preferredHeight,_preferredHeight)) {to.preferredHeight = _preferredHeight;changed=true;}
             if(!Mathf.Approximately(to.flexibleWidth,_flexibleWidth)) {to.flexibleWidth = _flexibleWidth;changed=true;}
+            if(!Mathf.Approximately(to.flexibleHeight,_flexibleHeight)) {to.flexibleHeight = _flexibleHeight;changed=true;}
             return changed;
         }
 
