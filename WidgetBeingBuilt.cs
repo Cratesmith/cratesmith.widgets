@@ -26,8 +26,8 @@ namespace com.cratesmith.widgets
             return new WidgetBuilder(widget, owner);
         }
         
-        public bool HasStatus<T>() where T:IWidgetStatus => widget.HasStatus<T>();
-        public bool HasStatus<T>(out T status) where T:IWidgetStatus => widget.HasStatus<T>(out status);
+        public bool HasEvent<T>() where T: struct, IWidgetEvent => widget.HasEvent<T>();
+        public bool HasStatus<T>(out T status) where T: struct, IWidgetEvent => widget.HasEvent(out status);
     }
 
     public static class WidgetBeingBuiltExtensions

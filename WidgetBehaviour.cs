@@ -14,6 +14,7 @@ using System.Diagnostics;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Debug = UnityEngine.Debug;
 
@@ -76,7 +77,7 @@ namespace com.cratesmith.widgets
     public abstract class WidgetBehaviour
         : MonoBehaviour
         , WidgetBuilder.ISecret
-    
+        , IWidgetHasEvent<EHovered>, IPointerEnterHandler, IPointerExitHandler   
     {
         [SerializeField, ReadOnlyField] protected RectTransform m_RectTransform;
         public RectTransform RectTransform => m_RectTransform;
@@ -404,6 +405,9 @@ namespace com.cratesmith.widgets
         
         List<WidgetBehaviour> m_Children = new List<WidgetBehaviour>();
         public List<WidgetBehaviour> Children => m_Children;
+
+        ref WidgetEventStorage<EHovered> IWidgetHasEvent<EHovered>.EventStorage => ref m_Hovered;
+        WidgetEventStorage<EHovered> m_Hovered;
         
         /// <summary>
         /// The parent of this Widget.
@@ -487,6 +491,7 @@ namespace com.cratesmith.widgets
                     if (!Is.Spawned(current) || current.IsDirty) continue;
                     current.IsDirty = true;
                     WidgetManager.MarkForRebuild(current);
+                    
                 } 
             }
             LogInternal($"Widget {name} set dirty");
@@ -589,6 +594,11 @@ namespace com.cratesmith.widgets
             SetDirty();  
         }
 
+        protected virtual void OnDisable()
+        {
+            m_Hovered.Clear();
+        }
+
         protected virtual void Awake()
         {
             this.EnsureComponent(ref m_RectTransform);
@@ -662,6 +672,7 @@ namespace com.cratesmith.widgets
                 ((WidgetBuilder.ISecret)child).OnDespawn();
             }
         }
+
         void WidgetBuilder.ISecret.SortChildren()
         {
             if (!m_InternalChildren.OrderChanged && !m_OwnerChildren.OrderChanged)
@@ -727,7 +738,15 @@ namespace com.cratesmith.widgets
         {
             return $"{name}:{WidgetIndex}:{(Despawned?"y":(IsDespawning?"n*":"n"))}";
         }
-        
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            ClearEvent<EHovered>();
+        }
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            this.SetEvent(default(EHovered));
+        }
+
         [Conditional("WIDGETS_LOG_ERROR")]
         public void LogError(string message) => Log(LogLevel.Error, message);
         
@@ -764,23 +783,32 @@ namespace com.cratesmith.widgets
             }
         }
 
-        public bool HasStatus<T>() where T : IWidgetStatus
+        public bool HasEvent<T>() where T : struct, IWidgetEvent
         {
-            return true;
+            return (this is IWidgetHasEvent<T> secret && secret.EventStorage.Get(out var _));
         }
         
-        public bool HasStatus<T>(out T status) where T : IWidgetStatus
+        public bool HasEvent<T>(out T status) where T : struct, IWidgetEvent
         {
+            if (this is IWidgetHasEvent<T> secret 
+                && secret.EventStorage.Get(out status))
+            {
+                return true;
+            }
             status = default;
-            return true;
+            return false;
         }
 
-        public void SetStatus<T>(in T status=default) where T : IWidgetStatus
+        public void ClearEvent<T>() where T : struct, IWidgetEvent
         {
-        }
-
-        public void ClearStatus<T>() where T : IWidgetStatus
-        {
+            if (this is IWidgetHasEvent<T> secret)
+            {
+                secret.EventStorage.Clear();
+                if (Is.NotNull(OwnerWidget))
+                {
+                    OwnerWidget.SetDirty();
+                }
+            }
         }
     }
 }

@@ -72,6 +72,23 @@ namespace com.cratesmith.widgets
             };
         }
 
+        public static WidgetRectTransform Pivot(TextAnchor from, in Optional<Vector2> pivot, in Optional<Vector2> size=default, in Optional<Vector2> offset=default)
+        {
+            var anchorMin = Vector2.zero;
+            var anchorMax = Vector2.zero;
+            
+            anchorMin = anchorMax = CalcPivot(from);
+            
+            return new WidgetRectTransform()
+            {
+                anchorMin = anchorMin,
+                anchorMax = anchorMax,
+                anchoredPosition = offset,
+                sizeDelta = size,
+                pivot = pivot,
+            };
+        }
+        
         public static WidgetRectTransform Pivot(TextAnchor from, in Optional<Vector2> size=default, in Optional<Vector2> offset=default)
         {
             var anchorMin = Vector2.zero;

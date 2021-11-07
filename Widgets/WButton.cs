@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using com.cratesmith.widgets;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -9,10 +7,10 @@ namespace com.cratesmith.widgets
 {
     public struct SButton : IWidgetStateImage, IEquatable<SButton>
     {
-        public Action<WButton> onClick;
-        public WidgetColorBlock colors;
+        public Action<WButton>      onClick;
+        public WidgetColorBlock     colors;
         public Optional<Navigation> navigation;
-        public Optional<bool> interactable;
+        public Optional<bool>       interactable;
         public Optional<Sprite> sprite { get; set; }
         public Optional<Color> color { get; set; }
         public Optional<Image.Type> imageType { get; set; }
@@ -134,11 +132,20 @@ namespace com.cratesmith.widgets
         }
     }
     
-    public class WButton : WImage<SButton>
+    public class WButton : WImage<SButton>, IWidgetHasEvent<EClicked>
     {
         [SerializeField,ReadOnlyField] protected Button m_Button;
+        WidgetEventStorage<EClicked>                    m_Clicked;
+        
         public Button Button => m_Button;
         
+        
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            m_Clicked.Clear();
+        }
+
         protected override void Awake()
         {
             if (!this.EnsureComponent(ref m_LayoutElement))
@@ -173,8 +180,10 @@ namespace com.cratesmith.widgets
         void HandleOnClick()
         {
             State.onClick?.Invoke(this);
-            SetStatus<Clicked>();
+            this.SetEvent(EClicked.ThisFrame());
         }
+        
+        ref WidgetEventStorage<EClicked> IWidgetHasEvent<EClicked>.EventStorage => ref m_Clicked;
     }
 }
 
