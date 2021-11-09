@@ -15,6 +15,7 @@ namespace com.cratesmith.widgets
         public Optional<Color> color { get; set; }
         public Optional<Image.Type> imageType { get; set; }
         public Optional<bool> preserveAspect { get; set; }
+        public Optional<bool> raycastTarget { get; set; }
         public WidgetRectTransform rectTransform { get; set; }
         public WidgetLayoutElement layoutElement { get; set; }
         public WidgetContentSizeFitter contentSizeFitter { get; set; }
@@ -24,20 +25,7 @@ namespace com.cratesmith.widgets
 
         public bool Equals(SButton other)
         {
-            return ReferenceEquals(onClick,other.onClick) 
-                   && colors.Equals(other.colors) 
-                   && navigation.Equals(other.navigation) 
-                   && interactable.Equals(other.interactable) 
-                   && sprite.Equals(other.sprite) 
-                   && color.Equals(other.color) 
-                   && imageType.Equals(other.imageType) 
-                   && preserveAspect.Equals(other.preserveAspect) 
-                   && rectTransform.Equals(other.rectTransform) 
-                   && layoutElement.Equals(other.layoutElement) 
-                   && contentSizeFitter.Equals(other.contentSizeFitter) 
-                   && layoutGroup.Equals(other.layoutGroup) 
-                   && autoDisableLayoutGroup.Equals(other.autoDisableLayoutGroup)
-                   && debugLogging.Equals(other.debugLogging);
+            return Equals(onClick, other.onClick) && colors.Equals(other.colors) && navigation.Equals(other.navigation) && interactable.Equals(other.interactable) && sprite.Equals(other.sprite) && color.Equals(other.color) && imageType.Equals(other.imageType) && preserveAspect.Equals(other.preserveAspect) && raycastTarget.Equals(other.raycastTarget) && rectTransform.Equals(other.rectTransform) && layoutElement.Equals(other.layoutElement) && contentSizeFitter.Equals(other.contentSizeFitter) && debugLogging.Equals(other.debugLogging) && layoutGroup.Equals(other.layoutGroup) && autoDisableLayoutGroup.Equals(other.autoDisableLayoutGroup);
         }
 
         public override bool Equals(object obj)
@@ -57,9 +45,11 @@ namespace com.cratesmith.widgets
                 hashCode = (hashCode * 397) ^ color.GetHashCode();
                 hashCode = (hashCode * 397) ^ imageType.GetHashCode();
                 hashCode = (hashCode * 397) ^ preserveAspect.GetHashCode();
+                hashCode = (hashCode * 397) ^ raycastTarget.GetHashCode();
                 hashCode = (hashCode * 397) ^ rectTransform.GetHashCode();
                 hashCode = (hashCode * 397) ^ layoutElement.GetHashCode();
                 hashCode = (hashCode * 397) ^ contentSizeFitter.GetHashCode();
+                hashCode = (hashCode * 397) ^ debugLogging.GetHashCode();
                 hashCode = (hashCode * 397) ^ layoutGroup.GetHashCode();
                 hashCode = (hashCode * 397) ^ autoDisableLayoutGroup.GetHashCode();
                 return hashCode;

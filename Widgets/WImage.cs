@@ -1,9 +1,5 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using com.cratesmith.widgets;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace com.cratesmith.widgets
@@ -14,6 +10,7 @@ namespace com.cratesmith.widgets
         public Optional<Color> color { get; set; }
         public Optional<Image.Type> imageType { get; set; }
         public Optional<bool> preserveAspect { get; set; }
+        public Optional<bool> raycastTarget { get; set; }
         public WidgetRectTransform rectTransform { get; set; }
         public WidgetLayoutElement layoutElement { get; set; }
         public WidgetBasicLayout layoutGroup { get; set; }
@@ -23,14 +20,7 @@ namespace com.cratesmith.widgets
 
         public bool Equals(SImage other)
         {
-            return sprite.Equals(other.sprite) 
-                   && color.Equals(other.color) 
-                   && imageType.Equals(other.imageType) 
-                   && preserveAspect.Equals(other.preserveAspect) 
-                   && rectTransform.Equals(other.rectTransform) && layoutElement.Equals(other.layoutElement) && layoutGroup.Equals(other.layoutGroup) 
-                   && autoDisableLayoutGroup.Equals(other.autoDisableLayoutGroup) 
-                   && contentSizeFitter.Equals(other.contentSizeFitter)
-                   && debugLogging.Equals(other.debugLogging);
+            return sprite.Equals(other.sprite) && color.Equals(other.color) && imageType.Equals(other.imageType) && preserveAspect.Equals(other.preserveAspect) && raycastTarget.Equals(other.raycastTarget) && rectTransform.Equals(other.rectTransform) && layoutElement.Equals(other.layoutElement) && layoutGroup.Equals(other.layoutGroup) && autoDisableLayoutGroup.Equals(other.autoDisableLayoutGroup) && contentSizeFitter.Equals(other.contentSizeFitter) && debugLogging.Equals(other.debugLogging);
         }
 
         public override bool Equals(object obj)
@@ -46,11 +36,13 @@ namespace com.cratesmith.widgets
                 hashCode = (hashCode * 397) ^ color.GetHashCode();
                 hashCode = (hashCode * 397) ^ imageType.GetHashCode();
                 hashCode = (hashCode * 397) ^ preserveAspect.GetHashCode();
+                hashCode = (hashCode * 397) ^ raycastTarget.GetHashCode();
                 hashCode = (hashCode * 397) ^ rectTransform.GetHashCode();
                 hashCode = (hashCode * 397) ^ layoutElement.GetHashCode();
                 hashCode = (hashCode * 397) ^ layoutGroup.GetHashCode();
                 hashCode = (hashCode * 397) ^ autoDisableLayoutGroup.GetHashCode();
                 hashCode = (hashCode * 397) ^ contentSizeFitter.GetHashCode();
+                hashCode = (hashCode * 397) ^ debugLogging.GetHashCode();
                 return hashCode;
             }
         }
@@ -72,6 +64,7 @@ namespace com.cratesmith.widgets
         public Optional<Color> color { get; }
         public Optional<Image.Type> imageType { get; }
         public Optional<bool> preserveAspect { get; }
+        public Optional<bool> raycastTarget { get; }
     }
 
     public class WImage : WImage<SImage>
@@ -93,6 +86,7 @@ namespace com.cratesmith.widgets
                 m_Image.color = new Color(1, 1, 1, 1f);
                 m_Image.sprite = null;
                 m_Image.type = Image.Type.Simple;
+                m_Image.raycastTarget = false;
             }
         }
 
@@ -103,6 +97,7 @@ namespace com.cratesmith.widgets
             m_Image.color = GetValue(State.color, prefab.m_Image.color);
             m_Image.type = GetValue(State.imageType, prefab.m_Image.type);
             m_Image.preserveAspect = State.preserveAspect.GetValue(prefab.m_Image.preserveAspect, UsesTypePrefab);
+            m_Image.raycastTarget = GetValue(State.raycastTarget, UsesTypePrefab);
             base.OnRefresh(ref builder);
         }
     }

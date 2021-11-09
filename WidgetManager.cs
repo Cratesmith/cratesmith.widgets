@@ -17,9 +17,14 @@ namespace com.cratesmith.widgets
     /// </summary>
     public class WidgetManager : MonoBehaviour
     {
+        static int s_CurrentRefreshDepth = -1;
+
         static List<List<WidgetBehaviour>> s_RefreshByDepth 
             = new List<List<WidgetBehaviour>>();
 
+        static List<List<WidgetBehaviour>> s_NextRefreshByDepth 
+            = new List<List<WidgetBehaviour>>();
+        
         Dictionary<WidgetBehaviour, Queue<WidgetBehaviour>> m_PrefabPool =
             new Dictionary<WidgetBehaviour, Queue<WidgetBehaviour>>();
 
@@ -331,18 +336,23 @@ namespace com.cratesmith.widgets
             _output = s_Instance;
             return _output;
         }
-        public static void MarkForRebuild(WidgetBehaviour _widgetBehaviour)
+        public static void MarkForRebuild(WidgetBehaviour _widgetBehaviour, bool _forceImmediate)
         {
             if (Application.isPlaying)
             {
                 TryGet(out var manager);
             }
-            for (int i = s_RefreshByDepth.Count; i <= _widgetBehaviour.Depth; i++)
+
+            var refreshList = s_CurrentRefreshDepth < _widgetBehaviour.Depth || _forceImmediate
+                ? s_RefreshByDepth
+                : s_NextRefreshByDepth;
+            
+            for (int i = refreshList.Count; i <= _widgetBehaviour.Depth; i++)
             {
-                s_RefreshByDepth.Add(new List<WidgetBehaviour>());
+                refreshList.Add(new List<WidgetBehaviour>());
             }
             
-            s_RefreshByDepth[_widgetBehaviour.Depth].Add(_widgetBehaviour);     
+            refreshList[_widgetBehaviour.Depth].Add(_widgetBehaviour);     
             // Debug.Log($"Marking {_widgetBehaviour.name}({_widgetBehaviour.gameObject.scene.name}) for rebuild (depth {_widgetBehaviour.Depth}) ({(s_InstancesInEditor.TryGetValue(_widgetBehaviour.gameObject, out var instList)?instList.Count:0)} instances)", _widgetBehaviour);
 #if UNITY_EDITOR
             if(s_InstancesInEditor.TryGetValue(_widgetBehaviour.gameObject, out var list))
@@ -407,9 +417,16 @@ namespace com.cratesmith.widgets
 
         static void RefreshDirty()
         {
-            for (var i = 0; i < s_RefreshByDepth.Count; i++)
+            while(true)
             {
-                var refreshList = s_RefreshByDepth[i];
+                s_CurrentRefreshDepth = 0;
+                while (s_CurrentRefreshDepth < s_RefreshByDepth.Count && s_RefreshByDepth[s_CurrentRefreshDepth].Count == 0)
+                    ++s_CurrentRefreshDepth;
+
+                if (s_CurrentRefreshDepth >= s_RefreshByDepth.Count)
+                    break;
+                
+                var refreshList = s_RefreshByDepth[s_CurrentRefreshDepth];
                 for (var j = 0; j < refreshList.Count; j++)
                 {
                     var widgetBehaviour = refreshList[j];
@@ -418,18 +435,18 @@ namespace com.cratesmith.widgets
 
                     if (!widgetBehaviour.gameObject.activeInHierarchy)
                     {
-                        ((WidgetBuilder.ISecret) widgetBehaviour).ClearDirty();
+                        ((WidgetBuilder.ISecret)widgetBehaviour).ClearDirty();
                         continue;
                     }
-                    
+
                     try
                     {
                         widgetBehaviour.Refresh();
-                        
+
                         // fixes issue with layout lifecycle in edit mode
                         if (!Application.isPlaying)
                         {
-                            LayoutRebuilder.ForceRebuildLayoutImmediate(Is.Spawned(widgetBehaviour.ParentWidget) 
+                            LayoutRebuilder.ForceRebuildLayoutImmediate(Is.Spawned(widgetBehaviour.ParentWidget)
                                                                             ? widgetBehaviour.ParentWidget.RectTransform : widgetBehaviour.RectTransform);
                         }
                     }
@@ -440,7 +457,12 @@ namespace com.cratesmith.widgets
                 }
                 refreshList.Clear();
             }
-        }
+            
+            s_CurrentRefreshDepth = -1;
+            var swap = s_RefreshByDepth;
+            s_RefreshByDepth = s_NextRefreshByDepth;
+            s_NextRefreshByDepth = swap;
+        } 
 
         public static void EditorRegisterPrefabInstance(WidgetBehaviour _widget, WidgetBehaviour _prefab)
         {

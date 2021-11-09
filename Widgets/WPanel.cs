@@ -79,6 +79,7 @@ namespace com.cratesmith.widgets
                 sprite = GetValue(State.backgroundSprite, prefab.m_BackgroundSprite),
                 color = GetValue(State.backgroundColor, prefab.m_BackgroundColor),
                 imageType = Image.Type.Sliced,
+                raycastTarget = true,
             });
 
             base.OnRefresh(ref builder);

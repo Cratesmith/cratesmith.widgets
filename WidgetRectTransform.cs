@@ -5,7 +5,6 @@ using UnityEngine;
 
 namespace com.cratesmith.widgets
 {
-
     public struct WidgetRectTransform : IEquatable<WidgetRectTransform>
     {
         public Optional<Vector3> localScale;
@@ -72,7 +71,7 @@ namespace com.cratesmith.widgets
             };
         }
 
-        public static WidgetRectTransform Pivot(TextAnchor from, in Optional<Vector2> pivot, in Optional<Vector2> size=default, in Optional<Vector2> offset=default)
+        public static WidgetRectTransform From(TextAnchor from, in Optional<Vector2> pivot, in Optional<Vector2> size=default, in Optional<Vector2> offset=default)
         {
             var anchorMin = Vector2.zero;
             var anchorMax = Vector2.zero;
@@ -89,7 +88,7 @@ namespace com.cratesmith.widgets
             };
         }
         
-        public static WidgetRectTransform Pivot(TextAnchor from, in Optional<Vector2> size=default, in Optional<Vector2> offset=default)
+        public static WidgetRectTransform From(TextAnchor from, in Optional<Vector2> size=default, in Optional<Vector2> offset=default)
         {
             var anchorMin = Vector2.zero;
             var anchorMax = Vector2.zero;
@@ -177,38 +176,41 @@ namespace com.cratesmith.widgets
             return !left.Equals(right);
         }
         
-        public static WidgetRectTransform ScreenPoint(Vector3 position, Canvas canvas, RectTransform parentTransform, TextAnchor pivot=TextAnchor.MiddleCenter,  Optional<Vector2> size=default, Vector2 offset = default, Vector3 fallbackScreenPoint = default)
+        public static WidgetRectTransform ScreenPoint(in Vector3 _position, in WidgetBuilder builder, Optional<Vector2> pivot=default, Optional<Vector2> size=default, Vector2 offset = default, Vector3 fallbackScreenPoint = default)
         {
-            position = ScreenToUIPosition(position, canvas, parentTransform, fallbackScreenPoint);
+            var position = ScreenToUIPosition(_position, builder.ParentWidget.Canvas, builder.ParentWidget.RectTransform, fallbackScreenPoint);
             var trueOffset = offset + new Vector2(position.x, position.y);
-            return Pivot(pivot, size, trueOffset);
+            return From(TextAnchor.MiddleCenter, pivot, size, trueOffset);
         }
         
-        static Vector3 ScreenToUIPosition(Vector3 position, Canvas canvas, RectTransform parentTransform, Vector3 fallbackScreenPoint)
+        public static WidgetRectTransform ScreenPoint(in Vector3 _position, Canvas canvas, RectTransform parentTransform, Optional<Vector2> pivot=default, Optional<Vector2> size=default, Vector2 offset = default, Vector3 fallbackScreenPoint = default)
+        {
+            var  position = ScreenToUIPosition(_position, canvas, parentTransform, fallbackScreenPoint);
+            var trueOffset = offset + new Vector2(position.x, position.y);
+            return From(TextAnchor.MiddleCenter, pivot, size, trueOffset);
+        }
+        
+        static Vector3 ScreenToUIPosition(in Vector3 position, Canvas canvas, RectTransform parentTransform, Vector3 fallbackScreenPoint)
         {
             var canvasTransform = (RectTransform)canvas.transform;
             switch (canvas.renderMode)
             {
                 case RenderMode.ScreenSpaceOverlay:
-                    position = parentTransform.InverseTransformPoint(position);
-                    break;
+                    return parentTransform.InverseTransformPoint(position);
 
                 case RenderMode.ScreenSpaceCamera:
-                    position = parentTransform.InverseTransformPoint(canvas.worldCamera.ScreenToWorldPoint(position));
-                    break;
+                    return parentTransform.InverseTransformPoint(canvas.worldCamera.ScreenToWorldPoint(position));
 
                 case RenderMode.WorldSpace:
                     var plane = new Plane(-canvasTransform.forward, parentTransform.position);
                     var ray = canvas.worldCamera.ScreenPointToRay(position);
-                    position = plane.Raycast(ray, out var dist)
+                    return plane.Raycast(ray, out var dist)
                         ? parentTransform.InverseTransformPoint(ray.GetPoint(dist))
                         : fallbackScreenPoint;
-                    break;
 
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            return position;
         }
 
         public static WidgetRectTransform ScreenRect(in Rect _rect, Canvas canvas, RectTransform parentTransform, in WidgetRectOffset padding=default, in Vector3 fallbackScreenPoint=default)
@@ -218,7 +220,7 @@ namespace com.cratesmith.widgets
             var max = Vector3.Max(a, b);
             var min = Vector3.Min(a, b);
             var size = max - min;
-            return WidgetRectTransform.Pivot(TextAnchor.MiddleCenter, size.XY(), (a+size*0.5f).XY());
+            return WidgetRectTransform.From(TextAnchor.MiddleCenter, size.XY(), (a+size*0.5f).XY());
         }
     }
 }

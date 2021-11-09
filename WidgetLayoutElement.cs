@@ -90,5 +90,13 @@ namespace com.cratesmith.widgets
         {
             return !left.Equals(right);
         }
+        public static WidgetLayoutElement Flexible(bool width = true, bool height = true)
+        {
+            return new WidgetLayoutElement()
+            {
+                flexibleHeight = height ? 1 : 0,
+                flexibleWidth = width ? 1 : 0,
+            };
+        }
     }
 }

@@ -45,6 +45,8 @@ namespace com.cratesmith.widgets
             void SortChildren();
             void SetContext(WidgetContext _context);
         }
+        public WidgetBehaviour ParentWidget => m_ParentWidget;
+        public WidgetBehaviour OwnerWidget => m_OwnerWidget;
 
         public WidgetBeingBuilt<TWidget> Widget<TWidget, TState>(TWidget _prefab, in TState _state)
             where TWidget : WidgetBehaviour<TState> 
@@ -114,7 +116,7 @@ namespace com.cratesmith.widgets
                 // if this edit is coming as an external 
                 if (m_ParentWidget != m_OwnerWidget && Is.Spawned(m_ParentWidget.ParentWidget))
                 {
-                    m_ParentWidget.ParentWidget.SetDirty();
+                    m_ParentWidget.ParentWidget.SetDirty(true);
                 }
             }
         }

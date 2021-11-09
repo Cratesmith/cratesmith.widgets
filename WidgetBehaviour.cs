@@ -1,10 +1,15 @@
+//#define WIDGETS_GC_TEST
+
+#if !WIDGETS_GC_TEST
 #define WIDGETS_LOG_ERROR
 #define WIDGETS_LOG_WARNING
 #define WIDGETS_LOG_INFO
 
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 #define WIDGETS_LOG_DEBUGGING
 #define WIDGETS_LOG_INTERNAL
+#endif
 #endif
 
 using System;
@@ -43,7 +48,7 @@ namespace com.cratesmith.widgets
         {
             if (!_forceDirty 
                 && typeof(IEquatable<TState>).IsAssignableFrom(typeof(TState)) 
-                && _state.Equals(State) && !_forceDirty) return;
+                && EqualityComparer<TState>.Default.Equals(_state,State) && !_forceDirty) return;
             
             State = _state;
             LogInternal($"Widget {name} state changed to [{State}]");
@@ -456,10 +461,11 @@ namespace com.cratesmith.widgets
         public void Refresh()
         {
             var builder = new WidgetBuilder(this, this);
+            IsDirty = false;
+            IsRefreshing = true;
             OnRefresh(ref builder);
             builder.EndChildren();
-                        
-            IsDirty = false;
+            IsRefreshing = false;
             HasRefreshed = true;
             LogInternal($"Widget {name} refreshed");
         }
@@ -476,7 +482,7 @@ namespace com.cratesmith.widgets
         /// Mark this widget as dirty.
         /// This will schedule a Refresh of the Widget if not already dirty.
         /// </summary>
-        public bool SetDirty()
+        public bool SetDirty(bool forceImmediate=false)
         {
             if (IsDirty) 
                 return false;
@@ -490,8 +496,7 @@ namespace com.cratesmith.widgets
                     var current = s_SetDirtyStack.Pop();
                     if (!Is.Spawned(current) || current.IsDirty) continue;
                     current.IsDirty = true;
-                    WidgetManager.MarkForRebuild(current);
-                    
+                    WidgetManager.MarkForRebuild(current, forceImmediate);
                 } 
             }
             LogInternal($"Widget {name} set dirty");
@@ -562,10 +567,11 @@ namespace com.cratesmith.widgets
         /// <returns>If this widget is ready to be despawned</returns>
         protected virtual bool TryToDespawn() => true;
 
-        public bool IsDespawning { get; private set; } = false;
+        public bool IsDespawning { get; private set; }
 
-        public WidgetContext Context { get; private set; } = default;
-        
+        public WidgetContext Context { get; private set; }
+        public bool IsRefreshing { get; private set; }
+
         bool WidgetBuilder.ISecret.TryToDespawn()
         {
             IsDespawning = true;
@@ -591,7 +597,7 @@ namespace com.cratesmith.widgets
 
         protected virtual void OnEnable()
         {
-            SetDirty();  
+            SetDirty(true);  
         }
 
         protected virtual void OnDisable()
