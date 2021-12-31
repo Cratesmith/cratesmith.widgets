@@ -15,7 +15,7 @@ namespace com.cratesmith.widgets
         public Optional<Color> color { get; set; }
         public Optional<Image.Type> imageType { get; set; }
         public Optional<bool> preserveAspect { get; set; }
-        public Optional<bool> raycastTarget { get; set; }
+        public Optional<bool> raycastTarget => true;
         public WidgetRectTransform rectTransform { get; set; }
         public WidgetLayoutElement layoutElement { get; set; }
         public WidgetContentSizeFitter contentSizeFitter { get; set; }
@@ -171,6 +171,7 @@ namespace com.cratesmith.widgets
         {
             State.onClick?.Invoke(this);
             this.SetEvent(EClicked.ThisFrame());
+            if (OwnerWidget) OwnerWidget.SetDirty();
         }
         
         ref WidgetEventStorage<EClicked> IWidgetHasEvent<EClicked>.EventStorage => ref m_Clicked;

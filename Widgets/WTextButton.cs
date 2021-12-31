@@ -75,13 +75,16 @@ namespace com.cratesmith.widgets
         }
     }
     
-    public class WTextButton : WBasicLayout<STextButton>
+    public class WTextButton : WBasicLayout<STextButton>, IWidgetHasEvent<EClicked>
     {
-        [SerializeField] WPanel     m_PanelPrefab;
-        [SerializeField] WButton    m_ButtonPrefab;
-        [SerializeField] WText      m_TextPrefab;
-        Action<WButton> m_ButtonOnClick;
-        Action<WButton> m_ButtonStateClick;
+        [SerializeField] WPanel      m_PanelPrefab;
+        [SerializeField] WButton     m_ButtonPrefab;
+        [SerializeField] WText       m_TextPrefab;
+        Action<WButton>              m_ButtonOnClick;
+        Action<WButton>              m_ButtonStateClick;
+        
+        WidgetEventStorage<EClicked> m_Clicked;
+        ref WidgetEventStorage<EClicked> IWidgetHasEvent<EClicked>.EventStorage => ref m_Clicked;
 
         protected override void Awake()
         {
@@ -89,6 +92,8 @@ namespace com.cratesmith.widgets
             {
                 m_ButtonStateClick?.Invoke(src);
                 State.onClick?.Invoke(this);
+                m_Clicked.Set(EClicked.ThisFrame());
+                if (OwnerWidget) OwnerWidget.SetDirty();
             };
             base.Awake();
         }
@@ -104,13 +109,12 @@ namespace com.cratesmith.widgets
                 m_ButtonStateClick = buttonState.onClick;
                 buttonState.onClick = m_ButtonOnClick;
 
-                using (var button = panel.Widget<WButton>(GetValue(State.buttonPrefab, m_ButtonPrefab))
+                var button = panel.Widget<WButton>(GetValue(State.buttonPrefab, m_ButtonPrefab))
                     .State(buttonState)
-                    .BeginChildren())
-                {
-                    button.Widget<WText>(GetValue(State.textPrefab, m_TextPrefab))
-                        .State(State.textState);
-                }
+                    .BeginChildren();
+                
+                button.Widget(GetValue(State.textPrefab, m_TextPrefab))
+                    .State(State.textState);
             }
             
             base.OnRefresh(ref builder);
