@@ -39,8 +39,14 @@ namespace com.cratesmith.widgets
 			var height = EditorGUI.GetPropertyHeight(property, true);
 
 			var leftRect = new Rect(x, position.y, width, height);
-			var rightRect = new Rect(x + width, position.y, width, height);
+			var rightRect = new Rect(x + width, position.y, width, EditorGUIUtility.singleLineHeight);
 			EditorGUI.PropertyField(leftRect, spPrefab, GUIContent.none);
+
+			if (Is.Null(spPrefab.objectReferenceValue))
+			{
+				spWidget.objectReferenceValue = null;
+			}
+			
 			if (spPrefab.hasMultipleDifferentValues)
 			{
 				EditorGUI.PropertyField(rightRect, spWidget, GUIContent.none);
@@ -48,7 +54,7 @@ namespace com.cratesmith.widgets
 			}
 			
 			var prefab = (WidgetBehaviour)spPrefab.objectReferenceValue;
-			if (!Is.NotNull(prefab))
+			if (Is.Null(prefab))
 			{
 				var serializedObject = property.serializedObject;
 				if (!serializedObject.isEditingMultipleObjects && serializedObject.targetObject is WidgetBehaviour widgetBehaviour && widgetBehaviour.gameObject.scene.IsValid())
@@ -60,7 +66,7 @@ namespace com.cratesmith.widgets
 							: $"_{property.name}";
 						var go = new GameObject(newObjName);
 						go.transform.SetParent(widgetBehaviour.transform);
-						spPrefab.objectReferenceValue =  go.AddComponent(fieldType);
+						spWidget.objectReferenceValue = spPrefab.objectReferenceValue =  go.AddComponent(fieldType);
 						EditorApplication.delayCall += () =>
 						{
 							if(go) go.SetActive(false);
