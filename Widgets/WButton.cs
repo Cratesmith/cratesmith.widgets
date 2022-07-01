@@ -171,7 +171,7 @@ namespace com.cratesmith.widgets
         {
             State.onClick?.Invoke(this);
             this.SetEvent(EClicked.ThisFrame());
-            if (OwnerWidget) OwnerWidget.SetDirty();
+            if (Is.Spawned(OwnerWidget)) OwnerWidget.SetDirty();
         }
         
         ref WidgetEventStorage<EClicked> IWidgetHasEvent<EClicked>.EventStorage => ref m_Clicked;
