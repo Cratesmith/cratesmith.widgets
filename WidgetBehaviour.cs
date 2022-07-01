@@ -228,7 +228,7 @@ namespace com.cratesmith.widgets
                 WidgetChild<TWidget> result = default;
                 if (WidgetManager.IsWidget(existingChild.widget, out TWidget widget) 
                     && !existingChild.prefabInstance.IsDespawning
-                    && existingChild.prefabInstance.Prefab==WidgetManager.LookupPrefab(existingChild.prefabInstance.GetType(), existingChild.prefabInstance.Prefab))
+                    && existingChild.prefabInstance.Prefab==WidgetManager.LookupPrefab(existingChild.prefabInstance.GetType(), _prefab))
                 {
                     result = existingChild;
                 }
