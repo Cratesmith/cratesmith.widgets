@@ -93,7 +93,7 @@ namespace com.cratesmith.widgets
                 m_ButtonStateClick?.Invoke(src);
                 State.onClick?.Invoke(this);
                 m_Clicked.Set(EClicked.ThisFrame());
-                if (OwnerWidget) OwnerWidget.SetDirty();
+                if (Is.Spawned(OwnerWidget)) OwnerWidget.SetDirty();
             };
             base.Awake();
         }
