@@ -235,14 +235,14 @@ namespace com.cratesmith.widgets
                 go.transform.SetParent(_parent);
                 return go.AddComponent<T>();
             }
-            
-#if UNITY_EDITOR
-            if (!Application.isPlaying)
-            {
-                var instance = (T) PrefabUtility.InstantiatePrefab(_prefab, _parent);
-                if (Is.NotNull(instance)) return instance;
-            }
-#endif
+//             
+// #if UNITY_EDITOR
+//             if (!Application.isPlaying)
+//             {
+//                 var instance = (T) PrefabUtility.InstantiatePrefab(_prefab, _parent);
+//                 if (Is.NotNull(instance)) return instance;
+//             }
+// #endif
             return  Instantiate(_prefab, _parent);
         }
 

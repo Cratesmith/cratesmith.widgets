@@ -229,6 +229,10 @@ namespace com.cratesmith.widgets
                 {
                     _rootPrefab = _prefab;
                 }
+                else if (Is.Null(_prefab))
+                {
+                    _rootPrefab = null;
+                }
                 
                 //bool isNew = false;
                 WidgetChild<TWidget> result = default;

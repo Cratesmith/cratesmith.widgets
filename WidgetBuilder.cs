@@ -82,7 +82,7 @@ namespace com.cratesmith.widgets
         public WidgetBeingBuilt<TWidget> Widget<TWidget>(WidgetPrefab<TWidget> _prefab, in WidgetContext _context=default)  
             where TWidget:WidgetBehaviour
         {
-            var widget = m_Children?.Widget(_prefab.widget, _prefab.root, _context, m_ParentWidget, m_OwnerWidget);
+            var widget = m_Children?.Widget(_prefab.widget, _prefab.prefab, _context, m_ParentWidget, m_OwnerWidget);
             return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget);
         }
         
@@ -90,7 +90,7 @@ namespace com.cratesmith.widgets
             where TWidget : WidgetBehaviour<TState> 
             where TState : struct, IWidgetState//, IEquatable<TState>
         {
-            var widget = m_Children?.Widget(_prefab.widget, _prefab.root, default, m_ParentWidget, m_OwnerWidget);
+            var widget = m_Children?.Widget(_prefab.widget, _prefab.prefab, default, m_ParentWidget, m_OwnerWidget);
             return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget).State(_state);
         }
 
@@ -98,7 +98,7 @@ namespace com.cratesmith.widgets
             where TWidget : WidgetBehaviour<TState> 
             where TState : struct, IWidgetState//, IEquatable<TState>
         {
-            var widget = m_Children?.Widget(_prefab.widget, _prefab.root, _context, m_ParentWidget, m_OwnerWidget);
+            var widget = m_Children?.Widget(_prefab.widget, _prefab.prefab, _context, m_ParentWidget, m_OwnerWidget);
             return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget).State(_state);
         }
 
