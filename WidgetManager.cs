@@ -361,6 +361,15 @@ namespace com.cratesmith.widgets
                         {
                             // Debug.Log($"Set {widget.name}({widget.gameObject.scene.name}) dirty because of prefab change");
                         }
+
+                        if (widget != widget.OwnerWidget)
+                        {
+                            ((WidgetBuilder.ISecret)widget.OwnerWidget).ClearHasRefreshed();
+                            if (widget.OwnerWidget.SetDirty())
+                            {
+                                // Debug.Log($"Set {widget.name}({widget.gameObject.scene.name}) dirty because of prefab change");
+                            }
+                        }
                     }
                 }
             }
@@ -459,20 +468,21 @@ namespace com.cratesmith.widgets
             s_NextRefreshByDepth = swap;
         } 
 
-        public static void EditorRegisterPrefabInstance(WidgetBehaviour _widget, WidgetBehaviour _prefab)
+        public static void EditorRegisterPrefabInstance(WidgetBehaviour _widget, WidgetBehaviour _prefab, bool _clear=true)
         {
             foreach (var transform in _prefab.GetComponentsInChildren<Transform>())
             {
-                if (!s_InstancesInEditor.TryGetValue(transform.gameObject, out var list))
+                if (_clear || !s_InstancesInEditor.TryGetValue(transform.gameObject, out var list))
                 {
                     list = s_InstancesInEditor[transform.gameObject] = new HashSet<WidgetBehaviour>();
                 }
+                     
                 list.Add(_widget);     
             }
             
             foreach (var staticChild in _widget.StaticChildren)
             {
-                EditorRegisterPrefabInstance(staticChild, _prefab);
+                EditorRegisterPrefabInstance(staticChild, _prefab, false);
             }
         }
         

@@ -79,7 +79,7 @@ namespace com.cratesmith.widgets
     /// Should not inherited from directly, use WidgetBehaviour<T> instead
     /// </summary>
     [ExecuteAlways]
-    public class WidgetBehaviour
+    public abstract class WidgetBehaviour
         : MonoBehaviour
         , WidgetBuilder.ISecret
         , IWidgetHasEvent<EHovered>, IPointerEnterHandler, IPointerExitHandler   
@@ -482,9 +482,7 @@ namespace com.cratesmith.widgets
         /// no previous state remains after this method is called. 
         /// </summary>
         /// <param name="widgetBuilder"></param>
-        protected virtual void OnRefresh(ref WidgetBuilder builder)
-        {
-        }
+        protected abstract void OnRefresh(ref WidgetBuilder builder);
 
         /// <summary>
         /// Mark this widget as dirty.
