@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace com.cratesmith.widgets
 {
@@ -14,8 +15,9 @@ namespace com.cratesmith.widgets
 	public struct WidgetPrefab<TWidget> : IWidgetPrefabDrawer
 		where TWidget : WidgetBehaviour
 	{
-		public WidgetBehaviour prefab;
-		public TWidget         widget;
+		[FormerlySerializedAs("prefab")] 
+		public WidgetBehaviour  root;
+		public  TWidget         widget;
 	}
 	
 #if UNITY_EDITOR
@@ -29,7 +31,7 @@ namespace com.cratesmith.widgets
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
-			var spPrefab = property.FindPropertyRelative("prefab");
+			var spPrefab = property.FindPropertyRelative("root");
 			var spWidget = property.FindPropertyRelative("widget");
 			var fieldType = spWidget.GetSerializedPropertyType();
 			EditorGUI.PrefixLabel(position, label);
@@ -40,21 +42,33 @@ namespace com.cratesmith.widgets
 
 			var leftRect = new Rect(x, position.y, width, height);
 			var rightRect = new Rect(x + width, position.y, width, EditorGUIUtility.singleLineHeight);
-			EditorGUI.PropertyField(leftRect, spPrefab, GUIContent.none);
+			EditorGUI.PropertyField(leftRect, spWidget, GUIContent.none);
 
-			if (Is.Null(spPrefab.objectReferenceValue))
+			if (!spWidget.hasMultipleDifferentValues)
 			{
-				spWidget.objectReferenceValue = null;
+				var widgetTransform = spWidget.objectReferenceValue
+					? ((WidgetBehaviour)spWidget.objectReferenceValue).transform
+					: null;
+				
+				var prefabTransform = spPrefab.objectReferenceValue
+					? ((WidgetBehaviour)spPrefab.objectReferenceValue).transform
+					: null;
+
+				if (prefabTransform 
+				    && (!widgetTransform || !widgetTransform.IsChildOf(prefabTransform)))
+				{
+					spPrefab.objectReferenceValue = null;
+				}
 			}
 			
-			if (spPrefab.hasMultipleDifferentValues)
+			if (spWidget.hasMultipleDifferentValues)
 			{
 				EditorGUI.PropertyField(rightRect, spWidget, GUIContent.none);
 				return;
 			}
 			
-			var prefab = (WidgetBehaviour)spPrefab.objectReferenceValue;
-			if (Is.Null(prefab))
+			var widget = (WidgetBehaviour)spWidget.objectReferenceValue;
+			if (Is.Null(widget))
 			{
 				var serializedObject = property.serializedObject;
 				if (!serializedObject.isEditingMultipleObjects && serializedObject.targetObject is WidgetBehaviour widgetBehaviour && widgetBehaviour.gameObject.scene.IsValid())
@@ -73,14 +87,12 @@ namespace com.cratesmith.widgets
 						};
 					}	
 				}
-				
 				return;
 			}
 			
 			var options = new List<Component>();
-			options.AddRange(prefab.GetComponentsInChildren(fieldType));
-			if (prefab.TryGetComponent(fieldType, out var rootComp) && !options.Contains(rootComp))
-				options.Insert(0, rootComp);
+			options.Add(widget);
+			options.AddRange(widget.GetComponentsInParent(typeof(WidgetBehaviour),true));
 
 			if (options.Count == 0)
 			{
@@ -92,13 +104,15 @@ namespace com.cratesmith.widgets
 				}
 				spWidget.objectReferenceValue = null;
 				return;
-			}
+			}	
 
-			var currentId = options.IndexOf((Component)spWidget.objectReferenceValue);
+			var currentId = Math.Max(0,options.IndexOf((Component)spPrefab.objectReferenceValue));
 			var newId = Mathf.Max(0, EditorGUI.Popup(rightRect, currentId, options.Select(x => x.name).ToArray()));
 			if (newId != currentId)
 			{
-				spWidget.objectReferenceValue = options[newId];
+				spPrefab.objectReferenceValue = options[newId] != widget 
+					? options[newId]
+					: null;
 			}
 		}
 	}

@@ -216,14 +216,9 @@ namespace com.cratesmith.widgets
             prefabInstance.gameObject.SetActive(true);
 
 #if UNITY_EDITOR
-            if (!s_InstancesInEditor.TryGetValue(_prefab.gameObject, out var list))
-            {
-                s_InstancesInEditor[_prefab.gameObject] = list = new HashSet<WidgetBehaviour>();
-            }
-            list.Add(prefabInstance);  
+            EditorRegisterPrefabInstance(prefabInstance,_prefab);
             // Debug.Log($"Spawned instance {instance.name}({instance.gameObject.scene.name})", instance);
             // Debug.Log($"\tfrom prefab from prefab {_prefab.name}({_prefab.gameObject.scene.name})", _prefab);
-            
 #endif
             return new WidgetBehaviour.WidgetChild<TWidget>()
             {
@@ -278,7 +273,7 @@ namespace com.cratesmith.widgets
                 list.Remove(_widget);
             }
 
-            s_InstancesInEditor.Remove(_widget.gameObject);
+            //s_InstancesInEditor.Remove(_widget.gameObject);
 
             if (!Application.isPlaying)
             {
@@ -466,11 +461,19 @@ namespace com.cratesmith.widgets
 
         public static void EditorRegisterPrefabInstance(WidgetBehaviour _widget, WidgetBehaviour _prefab)
         {
-            if (!s_InstancesInEditor.TryGetValue(_prefab.gameObject, out var list))
+            foreach (var transform in _prefab.GetComponentsInChildren<Transform>())
             {
-                list = s_InstancesInEditor[_prefab.gameObject] = new HashSet<WidgetBehaviour>();
+                if (!s_InstancesInEditor.TryGetValue(transform.gameObject, out var list))
+                {
+                    list = s_InstancesInEditor[transform.gameObject] = new HashSet<WidgetBehaviour>();
+                }
+                list.Add(_widget);     
             }
-            list.Add(_widget);
+            
+            foreach (var staticChild in _widget.StaticChildren)
+            {
+                EditorRegisterPrefabInstance(staticChild, _prefab);
+            }
         }
         
         // ReSharper disable Unity.PerformanceAnalysis
@@ -492,5 +495,4 @@ namespace com.cratesmith.widgets
             return newPrefab;
         }
     }
-
 }

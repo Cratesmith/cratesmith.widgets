@@ -79,7 +79,7 @@ namespace com.cratesmith.widgets
     /// Should not inherited from directly, use WidgetBehaviour<T> instead
     /// </summary>
     [ExecuteAlways]
-    public abstract class WidgetBehaviour
+    public class WidgetBehaviour
         : MonoBehaviour
         , WidgetBuilder.ISecret
         , IWidgetHasEvent<EHovered>, IPointerEnterHandler, IPointerExitHandler   
@@ -88,6 +88,7 @@ namespace com.cratesmith.widgets
         public RectTransform RectTransform => m_RectTransform;
         
         [SerializeField, ReadOnlyField] private List<WidgetBehaviour> m_StaticChildren = new List<WidgetBehaviour>();
+        public List<WidgetBehaviour> StaticChildren => m_StaticChildren;
 
         [SerializeField, ReadOnlyField] protected LayoutElement m_LayoutElement;
         public LayoutElement LayoutElement => m_LayoutElement;
@@ -223,12 +224,17 @@ namespace com.cratesmith.widgets
                 var existingChild = group.Count > group.numTouched 
                     ? group[group.numTouched]
                     : default;
+
+                if (Is.Null(_rootPrefab))
+                {
+                    _rootPrefab = _prefab;
+                }
                 
                 //bool isNew = false;
                 WidgetChild<TWidget> result = default;
                 if (WidgetManager.IsWidget(existingChild.widget, out TWidget widget) 
                     && !existingChild.prefabInstance.IsDespawning
-                    && existingChild.prefabInstance.Prefab==WidgetManager.LookupPrefab(existingChild.prefabInstance.GetType(), _prefab))
+                    && existingChild.prefabInstance.Prefab==WidgetManager.LookupPrefab(existingChild.prefabInstance.GetType(), _rootPrefab))
                 {
                     result = existingChild;
                 }
@@ -476,7 +482,9 @@ namespace com.cratesmith.widgets
         /// no previous state remains after this method is called. 
         /// </summary>
         /// <param name="widgetBuilder"></param>
-        protected abstract void OnRefresh(ref WidgetBuilder builder);
+        protected virtual void OnRefresh(ref WidgetBuilder builder)
+        {
+        }
 
         /// <summary>
         /// Mark this widget as dirty.
