@@ -231,5 +231,7 @@ namespace com.cratesmith.widgets
             var size = max - min;
             return WidgetRectTransform.From(TextAnchor.MiddleCenter, size.XY(), (a+size*0.5f).XY());
         }
+        
+        public static WidgetRectOffset Uniform(int size) => new WidgetRectOffset(size, size, size, size);
     }
 }
