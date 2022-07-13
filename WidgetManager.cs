@@ -294,14 +294,12 @@ namespace com.cratesmith.widgets
 		{
 			if (!Is.Spawned(_widget))
 				return;
-
+			
  #if UNITY_EDITOR
             if (Is.NotNull(_widget.Prefab) && s_InstancesInEditor.TryGetValue(_widget.Prefab.gameObject, out var list))
 			{
 				list.Remove(_widget);
 			}
-
-            //s_InstancesInEditor.Remove(_widget.gameObject);
 
 			if (!Application.isPlaying)
 			{
@@ -309,7 +307,8 @@ namespace com.cratesmith.widgets
 				return;
 			}
 #endif
-			
+			((WidgetBuilder.ISecret)_widget).OnDespawn();
+
 			if (!Is.NotNull(_widget.Prefab) || !TryGet(out WidgetManager manager))
 			{
 				DestroyImmediate(_widget.gameObject);

@@ -57,6 +57,15 @@ namespace com.cratesmith.widgets
         public static WidgetRectTransform Fill(TextAnchor from, float top = 0f, float bottom = 0f, float left = 0f, float right = 0f) 
             => Fill(CalcPivot(from), Vector2.zero, Vector2.one, top, bottom, left, right);
 
+        public static WidgetRectTransform Fill(TextAnchor from, TextAnchor to, float top = 0f, float bottom = 0f, float left = 0f, float right = 0f)
+        {
+            var a = CalcPivot(from);
+            var b = CalcPivot(to);
+            var min = Vector2.Min(a, b);
+            var max = Vector2.Max(a, b);
+            return Fill(a, min, max, top, bottom, left, right);
+        }
+
         public static WidgetRectTransform Fill(in Vector2 pivot, in Optional<Vector2> anchorMin, in Optional<Vector2> anchorMax, float top = 0f, float bottom = 0f, float left = 0f, float right = 0f)
         {
             return new WidgetRectTransform()

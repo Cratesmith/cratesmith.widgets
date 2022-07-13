@@ -379,10 +379,11 @@ namespace com.cratesmith.widgets
 				// These can occur if a despawning widget gets despwawned by this method.
 				for (int i = 0; i < WidgetsInOrder.Count; i++)
 				{
-					WidgetsInOrder[i].prefabInstance.m_WidgetIndex = i;
-					Assert.IsTrue(Is.Spawned(WidgetsInOrder[i].prefabInstance));
+					var prefabInstance = WidgetsInOrder[i].prefabInstance;
+					prefabInstance.m_WidgetIndex = i;
+					Assert.IsTrue(Is.Spawned(prefabInstance));
 					Assert.IsTrue(Is.Spawned(WidgetsInOrder[i].widget));
-					Assert.IsTrue(WidgetsInOrder[i].prefabInstance.transform.IsChildOf(_parent.RectTransform));
+					Assert.IsTrue(prefabInstance.transform.IsChildOf(_parent.RectTransform), $"ERROR: {prefabInstance} is not a child of parent widget {_parent} (parent:{(prefabInstance.transform.parent ? prefabInstance.transform.parent.name:"null")})");
 				}
 
 				// mark us as done
@@ -578,6 +579,13 @@ namespace com.cratesmith.widgets
 			HasRefreshed = false;
 			IsDespawning = false;
 			Despawned = false;
+			
+			Assert.IsTrue(m_InternalChildren.Count ==0, $"ERROR: {this} has internal children before spawned");
+			Assert.IsTrue(m_OwnerChildren.Count==0, $"ERROR: {this} has owner children before spawned");
+			m_InternalChildren.Clear();
+			m_OwnerChildren.Clear();
+			m_Children.Clear();
+			
 			Canvas = Is.Spawned(_parentWidget) ? _parentWidget.Canvas : GetComponentInParent<Canvas>();
 			
             for (var i = 0; i < m_StaticChildren.Count; i++)
@@ -587,11 +595,6 @@ namespace com.cratesmith.widgets
 					: null;
 				((WidgetBuilder.ISecret)m_StaticChildren[i]).Init(prefab, this, _ownerWidget, _context);
 			}
-			
-			Assert.IsTrue(m_InternalChildren.Count ==0, $"ERROR: {this} has internal children before spawned");
-			Assert.IsTrue(m_OwnerChildren.Count==0, $"ERROR: {this} has owner children before spawned");
-			m_InternalChildren.Clear();
-			m_OwnerChildren.Clear();
 		}
 
 		/// <summary>

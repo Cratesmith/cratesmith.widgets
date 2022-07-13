@@ -47,6 +47,8 @@ public struct WidgetRectOffset : IEquatable<RectOffset>, IEquatable<WidgetRectOf
         return obj is WidgetRectOffset other && Equals(other);
     }
 
+    public static WidgetRectOffset Zero => new WidgetRectOffset(0, 0, 0, 0);
+
     public override int GetHashCode()
     {
         unchecked
