@@ -109,7 +109,7 @@ namespace com.cratesmith.widgets
                 m_ButtonStateClick = buttonState.onClick;
                 buttonState.onClick = m_ButtonOnClick;
 
-                using var button = panel.Widget<WButton>(GetValue(State.buttonPrefab, m_ButtonPrefab))
+                var button = panel.Widget<WButton>(GetValue(State.buttonPrefab, m_ButtonPrefab))
                     .State(buttonState)
                     .BeginChildren();
                 
