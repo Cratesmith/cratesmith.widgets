@@ -4,24 +4,38 @@ namespace com.cratesmith.widgets
 {
 	public static class Is
 	{
-		public static bool Spawned(this WidgetBehaviour widget)
+		public static bool Spawned(WidgetBehaviour widget)
 		{
-			return (bool)((MonoBehaviour)widget) && !widget.Despawned;
+			return (bool)(MonoBehaviour)widget && !widget.Despawned;
 		}
-        
-		public static bool NotNull<T>(this T value) where T:class
+
+		public static bool NotNull<T>(T value)
 		{
-			if (value is UnityEngine.Object obj) 
+			if (!typeof(T).IsClass)
+			{
+				return true;
+			}
+
+			if (value is Object obj)
+			{
 				return obj;
-            
+			}
+
 			return !ReferenceEquals(value, null);
 		}
-        
-		public static bool Null<T>(this T value) where T:class
+
+		public static bool Null<T>(T value)
 		{
-			if (value is UnityEngine.Object obj) 
+			if (!typeof(T).IsClass)
+			{
+				return false;
+			}
+
+			if (value is Object obj)
+			{
 				return !obj;
-            
+			}
+
 			return ReferenceEquals(value, null);
 		}
 	}
