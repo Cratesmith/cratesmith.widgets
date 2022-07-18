@@ -15,7 +15,6 @@ public struct WidgetRectOffset : IEquatable<RectOffset>, IEquatable<WidgetRectOf
         top = _top;
         bottom = _bottom;
     }
-
     public void ApplyTo(RectOffset to)
     {
         to.left = left;
@@ -70,4 +69,5 @@ public struct WidgetRectOffset : IEquatable<RectOffset>, IEquatable<WidgetRectOf
     {
         return !left.Equals(right);
     }
+    public static WidgetRectOffset Uniform(int size) => new WidgetRectOffset(size, size, size, size);
 }
