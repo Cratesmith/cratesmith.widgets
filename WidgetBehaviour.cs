@@ -490,6 +490,13 @@ namespace com.cratesmith.widgets
 		/// </summary>
 		public void Refresh()
 		{
+			// this handles the case non-spawned root widgets that wouldn't have Init called otherwise
+			if (!HasRefreshed && Is.Null(OwnerWidget))
+			{
+				var prefab = WidgetManager.LookupPrefab(this.GetType());
+				((WidgetBuilder.ISecret)this).Init(prefab, null, this, this.AsContextReference());
+			}
+			
             var builder = new WidgetBuilder(this, this);
 			IsDirty = false;
 			IsRefreshing = true;
@@ -580,7 +587,7 @@ namespace com.cratesmith.widgets
 			IsDespawning = false;
 			Despawned = false;
 			
-			Assert.IsTrue(m_InternalChildren.Count ==0, $"ERROR: {this} has internal children before spawned");
+			Assert.IsTrue(m_InternalChildren.Count==0, $"ERROR: {this} has internal children before spawned");
 			Assert.IsTrue(m_OwnerChildren.Count==0, $"ERROR: {this} has owner children before spawned");
 			m_InternalChildren.Clear();
 			m_OwnerChildren.Clear();
@@ -595,6 +602,8 @@ namespace com.cratesmith.widgets
 					: null;
 				((WidgetBuilder.ISecret)m_StaticChildren[i]).Init(prefab, this, _ownerWidget, _context);
 			}
+            
+            LogInternal($"{this} Init");
 		}
 
 		/// <summary>
@@ -661,16 +670,6 @@ namespace com.cratesmith.widgets
 				WidgetManager.EditorRegisterPrefabInstance(this, prefab);
 			}
 #endif
-		}
-
-		protected virtual void Start()
-		{
-			// this handles the case non-spawned root widgets that wouldn't have Init called otherwise
-			if (!HasRefreshed && Is.Null(OwnerWidget))
-			{
-                var prefab = WidgetManager.LookupPrefab(this.GetType());
-				((WidgetBuilder.ISecret)this).Init(prefab, null, this, this.AsContextReference());
-			}
 		}
 
 		void BuildStaticChildrenList()
