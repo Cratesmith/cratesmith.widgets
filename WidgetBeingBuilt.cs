@@ -10,29 +10,42 @@ namespace com.cratesmith.widgets
     public ref struct WidgetBeingBuilt<TWidget> 
         where TWidget:WidgetBehaviour
     {
-        public readonly WidgetBehaviour owner;
-        public readonly TWidget widget;
+        public readonly WidgetBehaviour prefabInstance;
+        public readonly TWidget         widget;
 
-        public WidgetBeingBuilt(TWidget _widget, WidgetBehaviour _owner)
+        public WidgetBeingBuilt(TWidget _widget, WidgetBehaviour _prefabInstance)
         {
             widget = _widget;
-            owner = _owner;
+            prefabInstance = _prefabInstance;
         }
 
         public static implicit operator TWidget(in WidgetBeingBuilt<TWidget> @this) => @this.widget;
 
         public WidgetBuilder BeginChildren()
         {
+            var owner = Is.NotNull(widget) ? widget.OwnerWidget:null;
             return new WidgetBuilder(widget, owner);
         }
         
         public bool HasEvent<T>() where T: struct, IWidgetEvent => widget.HasEvent<T>();
         public bool HasStatus<T>(out T status) where T: struct, IWidgetEvent => widget.HasEvent(out status);
+        
+        public WidgetBeingBuilt<TWidget> Sorting(int group)
+        {
+            ((WidgetBuilder.ISecret)widget).SetSorting(new WidgetSorting(group, widget.Sorting.index));
+            return this;
+        }
+        
+        public WidgetBeingBuilt<TWidget> Sorting(int group, int index)
+        {
+            ((WidgetBuilder.ISecret)widget).SetSorting(new WidgetSorting(group, index));
+            return this;
+        }
     }
 
     public static class WidgetBeingBuiltExtensions
     {
-        public static WidgetBeingBuilt<TWidget> State<TWidget, TState>(this WidgetBeingBuilt<TWidget> _widgetBuild, in TState _state, bool _forceRebuild=false)
+        public static WidgetBeingBuilt<TWidget> State<TWidget, TState>(in this WidgetBeingBuilt<TWidget> _widgetBuild, in TState _state, bool _forceRebuild=false)
             where TWidget:WidgetBehaviour<TState>
             where TState:struct, IWidgetState//, IEquatable<TState>
         {

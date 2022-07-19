@@ -39,69 +39,37 @@ namespace com.cratesmith.widgets
             /// <summary>
             /// Setup method called by WidgetBuilder when widget is constructed
             /// </summary>
-            void Init(WidgetBehaviour _prefab, WidgetBehaviour _parentWidget, WidgetBehaviour _ownerWidget, WidgetContext _context);
+            void Init(WidgetBehaviour _prefab, WidgetBehaviour _parentWidget, WidgetBehaviour _ownerWidget, WidgetContext _context,  WidgetSorting _sorting);
             bool TryToDespawn();
             void OnDespawn();
-            void SortChildren();
             void SetContext(WidgetContext _context);
+            
+            void SetSorting(WidgetSorting sorting);
         }
         public WidgetBehaviour ParentWidget => m_ParentWidget;
         public WidgetBehaviour OwnerWidget => m_OwnerWidget;
 
-        public WidgetBeingBuilt<TWidget> Widget<TWidget, TState>(TWidget _prefab, in TState _state)
-            where TWidget : WidgetBehaviour<TState> 
-            where TState : struct, IWidgetState//, IEquatable<TState>
-        {
-            var widget = m_Children?.Widget(_prefab, null, default, m_ParentWidget, m_OwnerWidget);
-            return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget).State(_state);
-        }
-
-        public WidgetBeingBuilt<TWidget> Widget<TWidget, TState>(TWidget _prefab, in WidgetContext _context, in TState _state)
-            where TWidget : WidgetBehaviour<TState> 
-            where TState : struct, IWidgetState//, IEquatable<TState>
-        {
-            var widget = m_Children?.Widget(_prefab, null, _context, m_ParentWidget, m_OwnerWidget);
-            return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget).State(_state);
-        }
-        
         public WidgetBeingBuilt<TWidget> Widget<TWidget>(in WidgetContext _context = default)
             where TWidget : WidgetBehaviour
         {
-            var widget = m_Children?.Widget((TWidget)null, null, _context, m_ParentWidget, m_OwnerWidget);
-            return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget);
+            var (prefabInstance, widget) = m_Children.Widget((TWidget)null, null, _context, m_ParentWidget, m_OwnerWidget, m_Children.DefaultSortingGroup);
+            return new WidgetBeingBuilt<TWidget>(widget, prefabInstance);
         }
         
         // ReSharper disable Unity.PerformanceAnalysis
         public WidgetBeingBuilt<TWidget> Widget<TWidget>(TWidget _prefab, in WidgetContext _context=default) 
             where TWidget:WidgetBehaviour
         {
-            var widget = m_Children?.Widget(_prefab, null, _context, m_ParentWidget, m_OwnerWidget);
-            return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget);
+            var (prefabInstance, widget) = m_Children.Widget(_prefab, null, _context, m_ParentWidget, m_OwnerWidget, m_Children.DefaultSortingGroup);
+            return new WidgetBeingBuilt<TWidget>(widget, prefabInstance);
         }
-       
+        
         public WidgetBeingBuilt<TWidget> Widget<TWidget>(WidgetPrefab<TWidget> _prefab, in WidgetContext _context=default)  
             where TWidget:WidgetBehaviour
         {
-            var widget = m_Children?.Widget(_prefab.widget, _prefab.prefab, _context, m_ParentWidget, m_OwnerWidget);
-            return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget);
+            var (prefabInstance, widget) = m_Children.Widget(_prefab.widget, _prefab.prefab, _context, m_ParentWidget, m_OwnerWidget, m_Children.DefaultSortingGroup);
+            return new WidgetBeingBuilt<TWidget>(widget, prefabInstance);
         }
-        
-        public WidgetBeingBuilt<TWidget> Widget<TWidget, TState>(WidgetPrefab<TWidget> _prefab, in TState _state)
-            where TWidget : WidgetBehaviour<TState> 
-            where TState : struct, IWidgetState//, IEquatable<TState>
-        {
-            var widget = m_Children?.Widget(_prefab.widget, _prefab.prefab, default, m_ParentWidget, m_OwnerWidget);
-            return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget).State(_state);
-        }
-
-        public WidgetBeingBuilt<TWidget> Widget<TWidget, TState>(WidgetPrefab<TWidget> _prefab, in WidgetContext _context, in TState _state)
-            where TWidget : WidgetBehaviour<TState> 
-            where TState : struct, IWidgetState//, IEquatable<TState>
-        {
-            var widget = m_Children?.Widget(_prefab.widget, _prefab.prefab, _context, m_ParentWidget, m_OwnerWidget);
-            return new WidgetBeingBuilt<TWidget>(widget, m_OwnerWidget).State(_state);
-        }
-
 
         public void EndChildren()
         {
@@ -111,9 +79,7 @@ namespace com.cratesmith.widgets
             m_Children.End(m_ParentWidget, m_OwnerWidget);
             if (m_Children.OrderChanged)
             {
-                ((ISecret)m_ParentWidget).SortChildren();
-                
-                // if this edit is coming as an external 
+                // if this edit is coming from the owner, we need to set our parent dirty to ensure order is preserved
                 if (m_ParentWidget != m_OwnerWidget && Is.Spawned(m_ParentWidget.ParentWidget))
                 {
                     m_ParentWidget.ParentWidget.SetDirty(true);

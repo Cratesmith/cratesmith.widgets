@@ -160,6 +160,12 @@ namespace com.cratesmith.widgets
 		{
 			public WidgetBehaviour widget;
 			public WidgetBehaviour prefabInstance;
+			
+			public override string ToString()
+			{
+				return widget!=prefabInstance ? $"[{prefabInstance}->{widget}]"
+				: widget.ToString();
+			}
 		}
 
 		public class ChildCollection : IEnumerable<WidgetChild>
@@ -187,8 +193,13 @@ namespace com.cratesmith.widgets
 			public int EditingIndex { get; private set; } = -1;
             public bool OrderChanged { get; private set; } = false;
 			public int Count => WidgetsInOrder.Count;
+			public int DefaultSortingGroup { get; private set; }
 
 			static HashSet<WidgetContext> s_RemoveContexts = new HashSet<WidgetContext>();
+			public ChildCollection(int defaultSortingGroup)
+			{
+				DefaultSortingGroup = defaultSortingGroup;
+			}
 
 			public void Begin(WidgetBehaviour _parent, WidgetBehaviour _owner)
 			{
@@ -208,7 +219,12 @@ namespace com.cratesmith.widgets
 				OrderChanged = false;
 			}
 
-			public TWidget Widget<TWidget>(TWidget _prefab, WidgetBehaviour _rootPrefab, in WidgetContext _context, WidgetBehaviour m_ParentWidget, WidgetBehaviour m_OwnerWidget)
+			public (WidgetBehaviour, TWidget) Widget<TWidget>(TWidget _prefab, 
+			                               WidgetBehaviour _rootPrefab, 
+			                               in WidgetContext _context, 
+			                               WidgetBehaviour _parentWidget, 
+			                               WidgetBehaviour _ownerWidget,
+			                               int _sortingGroup)
 				where TWidget : WidgetBehaviour
 			{
                 if (!ContextGroups.TryGetValue(_context, out var group))
@@ -229,6 +245,8 @@ namespace com.cratesmith.widgets
 					_rootPrefab = null;
 				}
 
+				var sorting = new WidgetSorting(_sortingGroup, this.EditingIndex);
+				
 				bool isNew = false;
 				WidgetChild<TWidget> result = default;
                 if (WidgetManager.IsWidget(existingChild.widget, out TWidget widget) 
@@ -236,18 +254,25 @@ namespace com.cratesmith.widgets
                     && existingChild.prefabInstance.Prefab==WidgetManager.LookupPrefab(existingChild.prefabInstance.GetType(), _rootPrefab))
 				{
 					result = existingChild;
-                }
+					if (!sorting.Equals(result.prefabInstance.Sorting))
+					{
+						((WidgetBuilder.ISecret)result.widget).SetSorting(sorting);
+						OrderChanged = true;
+					}
+				}
                 else if (_context.isUnique && group.Count > 0)
 				{
-					return null;
+					return (null,null);
                 }
                 else
 				{
 					isNew = true;
 					WidgetChild<TWidget> spawn = WidgetManager.SpawnChild(_prefab,
 					                                                      _rootPrefab,
-					                                                      m_ParentWidget,
-					                                                      m_OwnerWidget, _context);
+					                                                      _parentWidget,
+					                                                      _ownerWidget, 
+					                                                      _context,
+					                                                      sorting);
 
 					result = spawn;
 
@@ -265,11 +290,11 @@ namespace com.cratesmith.widgets
                 ++group.numTouched;
 				StepEditingIndex();
 				
-				if (m_ParentWidget.DebugLogging.HasFlag(LogLevel.Internal))
+				if ((_parentWidget.DebugLogging & LogLevel.Internal)!=0)
 				{
 				    var sb = new StringBuilder();
-				    sb.Append($"{m_ParentWidget.name}");
-				    sb.Append($":{(m_OwnerWidget == m_ParentWidget ? "Int" : "Own")}");
+				    sb.Append($"{_parentWidget.name}");
+				    sb.Append($":{(_ownerWidget == _parentWidget ? "Int" : "Own")}");
 				    sb.Append(":Widget");
 				    int siblingIndex = result.prefabInstance.RectTransform.GetSiblingIndex();
 				    if (isNew)
@@ -289,14 +314,14 @@ namespace com.cratesmith.widgets
 				    }
 
 				    sb.Append($"\n{result}");
-				    m_ParentWidget.LogInternal( sb.ToString());
+				    _parentWidget.LogInternal( sb.ToString());
 				    Debug.Log(sb);
 				}
 
 				Assert.IsTrue(Is.Spawned(result.prefabInstance));
 				Assert.IsTrue(Is.Spawned(result.widget));
-				Assert.IsTrue(result.prefabInstance.RectTransform.IsChildOf(m_ParentWidget.RectTransform));
-				return result.widget;
+				Assert.IsTrue(result.prefabInstance.RectTransform.IsChildOf(_parentWidget.RectTransform));
+				return (result.prefabInstance, result.widget);
 			}
 
 			public void End(WidgetBehaviour _parent, WidgetBehaviour _owner)
@@ -432,14 +457,14 @@ namespace com.cratesmith.widgets
             IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)this).GetEnumerator();
 		}
 
-		ChildCollection m_InternalChildren = new ChildCollection();
+		ChildCollection m_InternalChildren = new ChildCollection(WidgetSorting.INTERNAL_CHILDREN);
 
-		ChildCollection m_OwnerChildren = new ChildCollection();
+		ChildCollection m_OwnerChildren = new ChildCollection(WidgetSorting.OWNER_CHILDREN);
         int             m_WidgetIndex;
         public int WidgetIndex => m_WidgetIndex; 
 
-        List<WidgetBehaviour> m_Children = new List<WidgetBehaviour>();
-        public List<WidgetBehaviour> Children => m_Children;
+        List<WidgetChild> m_Children = new List<WidgetChild>();
+        public List<WidgetChild> Children => m_Children;
 
 		ref WidgetEventStorage<EHovered> IWidgetHasEvent<EHovered>.EventStorage => ref m_Hovered;
 		WidgetEventStorage<EHovered> m_Hovered;
@@ -494,7 +519,7 @@ namespace com.cratesmith.widgets
 			if (!HasRefreshed && Is.Null(OwnerWidget))
 			{
 				var prefab = WidgetManager.LookupPrefab(this.GetType());
-				((WidgetBuilder.ISecret)this).Init(prefab, null, this, this.AsContextReference());
+				((WidgetBuilder.ISecret)this).Init(prefab, null, this, this.AsContextReference(), default);
 			}
 			
             var builder = new WidgetBuilder(this, this);
@@ -502,6 +527,12 @@ namespace com.cratesmith.widgets
 			IsRefreshing = true;
 			OnRefresh(ref builder);
 			builder.EndChildren();
+
+			if (m_InternalChildren.OrderChanged || m_OwnerChildren.OrderChanged)
+			{
+				SortChildren();
+			}
+			
 			IsRefreshing = false;
 			HasRefreshed = true;
 			LogInternal($"Widget {name} refreshed");
@@ -567,7 +598,8 @@ namespace com.cratesmith.widgets
 		void WidgetBuilder.ISecret.Init(WidgetBehaviour _prefab,
 		                                WidgetBehaviour _parentWidget,
 		                                WidgetBehaviour _ownerWidget,
-		                                WidgetContext _context)
+		                                WidgetContext _context,
+		                                WidgetSorting _sorting)
 		{
 			if (Is.Null(_prefab))
 			{
@@ -586,6 +618,7 @@ namespace com.cratesmith.widgets
 			HasRefreshed = false;
 			IsDespawning = false;
 			Despawned = false;
+			Sorting = _sorting;
 			
 			Assert.IsTrue(m_InternalChildren.Count==0, $"ERROR: {this} has internal children before spawned");
 			Assert.IsTrue(m_OwnerChildren.Count==0, $"ERROR: {this} has owner children before spawned");
@@ -600,11 +633,13 @@ namespace com.cratesmith.widgets
                 var prefab = Is.NotNull(Prefab) && Prefab.m_StaticChildren.Count > i
 					? Prefab.m_StaticChildren[i]
 					: null;
-				((WidgetBuilder.ISecret)m_StaticChildren[i]).Init(prefab, this, _ownerWidget, _context);
+                
+				((WidgetBuilder.ISecret)m_StaticChildren[i]).Init(prefab, this, _ownerWidget, _context, new WidgetSorting(WidgetSorting.STATIC_CHILDREN, i));
 			}
             
             LogInternal($"{this} Init");
 		}
+		public WidgetSorting Sorting { get; private set; }
 
 		/// <summary>
 		/// Called on widgets when we're trying to despawn them
@@ -715,62 +750,76 @@ namespace com.cratesmith.widgets
 			}
 		}
 
-		void WidgetBuilder.ISecret.SortChildren()
+		void SortChildren()
 		{
+			// pretty standard binary sort
+			int _InsertSortedBinary(List<WidgetChild> _collection, in WidgetChild newWidget) 
+			{
+				if (_collection.Count == 0)
+				{
+					_collection.Add(newWidget);
+					return 0;
+				}
+			
+				var l = 0;
+				var h = _collection.Count;	
+				var insertAt = _collection.Count/2;
+			
+				while (l < h)
+				{
+					insertAt = (h - l) / 2 + l;
+					var currentWidget = _collection[insertAt];
+					var result = newWidget.prefabInstance.Sorting.CompareTo(currentWidget.prefabInstance.Sorting);
+			
+					if (result>=0)
+						insertAt = l = insertAt+1;
+					else 
+						insertAt = h = insertAt;
+				}
+			
+				_collection.Insert(insertAt, newWidget);
+				return insertAt;
+			}
+			
 			if (!m_InternalChildren.OrderChanged && !m_OwnerChildren.OrderChanged)
 				return;
 
             m_Children.Clear();
+
+            var offset = RectTransform.childCount - m_InternalChildren.Count - m_OwnerChildren.Count - m_StaticChildren.Count;
             foreach (var child in m_StaticChildren)
-			{
-                if(m_Children.Count==0 
-                   || m_Children[m_Children.Count-1].RectTransform.GetSiblingIndex() <= child.RectTransform.GetSiblingIndex())
-				{
-                    m_Children.Add(child);
-				} else
-				{
-                    var insertAt = m_Children.BinarySearch(child, default(WidgetSiblingIndexComparision));
-                    if (insertAt < 0) insertAt = ~insertAt;
-                    m_Children.Insert(insertAt, child);
-				}
-			}
+            {
+	            child.RectTransform.SetSiblingIndex(offset+_InsertSortedBinary(m_Children, new WidgetChild()
+	            {
+		            prefabInstance = child,
+		            widget = child
+	            }));
+            }
 
-            var index = RectTransform.childCount - m_InternalChildren.Count - m_OwnerChildren.Count;
-            foreach (var child in m_InternalChildren)
-			{
-                var childTransform = child.prefabInstance.RectTransform;
-				if (childTransform.GetSiblingIndex() != index)
-					childTransform.SetSiblingIndex(index);
+            foreach (var child in m_InternalChildren.WidgetsInOrder)
+            {
+	            child.prefabInstance.RectTransform.SetSiblingIndex(offset+_InsertSortedBinary(m_Children, child));
+            }
+			
+            foreach (var child in m_OwnerChildren.WidgetsInOrder)
+            {
+	            child.prefabInstance.RectTransform.SetSiblingIndex(offset+_InsertSortedBinary(m_Children, child));
+            }           
 
-                m_Children.Add(child.prefabInstance);
-				++index;
-			}
-
-            foreach (var child in m_OwnerChildren)
-			{
-				Assert.IsTrue(Is.Spawned(child.prefabInstance));
-				Assert.IsTrue(child.prefabInstance.RectTransform.IsChildOf(RectTransform));
-				var childTransform = child.prefabInstance.RectTransform;
-				if (childTransform.GetSiblingIndex() != index)
-					childTransform.SetSiblingIndex(index);
-
-                m_Children.Add(child.prefabInstance);
-				++index;
-			}
-
-			if (m_DebugLogging.HasFlag(LogLevel.Internal))
+			if ((m_DebugLogging& LogLevel.Details)!=0)
 			{
                 var sb = new StringBuilder();
 				sb.AppendLine($"{name} Sorted children");
                 for (int i = 0; i < m_Children.Count; i++)
 				{
-                    sb.AppendLine($"\t[{i}] {m_Children[i]}");
+                    sb.AppendLine($"\t[{i}] {m_Children[i]} sorting:{m_Children[i].widget.Sorting}");
 				}
 				LogInternal(sb.ToString());
 			}
 		}
 		void WidgetBuilder.ISecret.SetContext(WidgetContext _context)
             => Context = _context;
+		public void SetSorting(WidgetSorting sorting) => Sorting = sorting;
 
 		public virtual void ResetState() { }
 
@@ -808,7 +857,7 @@ namespace com.cratesmith.widgets
 
 		public void Log(LogLevel level, string message)
 		{
-			if (!DebugLogging.HasFlag(level))
+			if ((DebugLogging & level)==0)
 				return;
 
 			switch (level)

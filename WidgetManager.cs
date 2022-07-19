@@ -133,12 +133,12 @@ namespace com.cratesmith.widgets
 			this.EnsureComponent(ref m_Transform);
 		}
 
-		public static WidgetBehaviour.WidgetChild<TWidget> SpawnChild<TWidget>(TWidget _widget, WidgetBehaviour _prefab, WidgetBehaviour _parentWidget, WidgetBehaviour _ownerWidget, WidgetContext _context) where TWidget : WidgetBehaviour
-            => Spawn(_widget, _prefab, _parentWidget.RectTransform, _parentWidget, _ownerWidget, _context);
+		public static WidgetBehaviour.WidgetChild<TWidget> SpawnChild<TWidget>(TWidget _widget, WidgetBehaviour _prefab, WidgetBehaviour _parentWidget, WidgetBehaviour _ownerWidget, WidgetContext _context, WidgetSorting _sorting) where TWidget : WidgetBehaviour
+            => Spawn(_widget, _prefab, _parentWidget.RectTransform, _parentWidget, _ownerWidget, _context, _sorting);
 
 
 		static Stack<int> s_BackwalkStack = new Stack<int>();
-		static WidgetBehaviour.WidgetChild<TWidget> Spawn<TWidget>(TWidget _widget, WidgetBehaviour _prefab, RectTransform _parent, WidgetBehaviour _parentWidget, WidgetBehaviour _ownerWidget, WidgetContext _context) where TWidget : WidgetBehaviour
+		static WidgetBehaviour.WidgetChild<TWidget> Spawn<TWidget>(TWidget _widget, WidgetBehaviour _prefab, RectTransform _parent, WidgetBehaviour _parentWidget, WidgetBehaviour _ownerWidget, WidgetContext _context, WidgetSorting _sorting) where TWidget : WidgetBehaviour
 		{
 			WidgetBehaviour prefabInstance = null;
 			TWidget widgetInstance = null;
@@ -230,8 +230,7 @@ namespace com.cratesmith.widgets
 			}
 
 			Assert.IsNotNull(_prefab);
-			((WidgetBuilder.ISecret)prefabInstance).Init(_prefab, _parentWidget, _ownerWidget, _context);
-			prefabInstance.gameObject.SetActive(true);
+			((WidgetBuilder.ISecret)prefabInstance).Init(_prefab, _parentWidget, _ownerWidget, _context, _sorting); prefabInstance.gameObject.SetActive(true);
 
 			Assert.IsTrue(Is.Spawned(prefabInstance));
 			Assert.IsTrue(Is.Spawned(widgetInstance));
@@ -531,7 +530,7 @@ namespace com.cratesmith.widgets
 				go.hideFlags = HideFlags.DontSave;
 				go.transform.SetParent(manager ? manager.m_Transform : null);
 				s_TypeOnlyPrefabs[_type] = newPrefab = (WidgetBehaviour)go.AddComponent(_type);
-				((WidgetBuilder.ISecret)newPrefab).Init(null, null, null, default);
+				((WidgetBuilder.ISecret)newPrefab).Init(null, null, null, default, default);
 				newPrefab.gameObject.SetActive(false);
 			}
 			return newPrefab;

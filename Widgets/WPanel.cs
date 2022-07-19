@@ -80,7 +80,7 @@ namespace com.cratesmith.widgets
                 color = GetValue(State.backgroundColor, prefab.m_BackgroundColor),
                 imageType = Image.Type.Sliced,
                 raycastTarget = true,
-            });
+            }).Sorting(0);
 
             base.OnRefresh(ref builder);
         }

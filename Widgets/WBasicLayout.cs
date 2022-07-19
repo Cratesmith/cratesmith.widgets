@@ -114,7 +114,7 @@ namespace com.cratesmith.widgets
             {
                 foreach (var child in Children)
                 {
-                    if (!child.LayoutElement.ignoreLayout)
+                    if (!child.widget.LayoutElement.ignoreLayout)
                     {
                         needsLayoutGroup = true;
                         break;
