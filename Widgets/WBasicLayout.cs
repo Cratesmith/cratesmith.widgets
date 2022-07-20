@@ -96,8 +96,6 @@ namespace com.cratesmith.widgets
    
         protected override void OnRefresh(ref WidgetBuilder builder)
         {
-            base.OnRefresh(ref builder);
-
             var prefab = this.GetPrefab();
                 if (State.layoutGroup.Apply(m_BasicLayoutGroup, this.GetPrefab().m_BasicLayoutGroup, UsesTypePrefab)
                     || !HasRefreshed)

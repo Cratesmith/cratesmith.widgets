@@ -64,8 +64,6 @@ namespace com.cratesmith.widgets
 
 		protected override void OnRefresh(ref WidgetBuilder builder)
 		{
-			base.OnRefresh(ref builder);
-
 			var prefab = this.GetPrefab();
 			if (State.layoutGroup.Apply(m_GridLayoutGroup, this.GetPrefab().m_GridLayoutGroup, UsesTypePrefab) || !HasRefreshed)
 				LayoutRebuilder.MarkLayoutForRebuild(RectTransform); // do this beforehand so LayoutGroup.DelayedSetDirty isn't called.

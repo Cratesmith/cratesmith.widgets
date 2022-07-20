@@ -17,23 +17,27 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Debug = UnityEngine.Debug;
+using Object = UnityEngine.Object;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace com.cratesmith.widgets
 {
 	/// <summary>
 	/// Base class for widget behaviours
-    /// 
+	/// 
 	/// </summary>
 	/// <typeparam name="TState"></typeparam>
 	public abstract class WidgetBehaviour<TState>
 		: WidgetBehaviour
-        where TState:struct, IWidgetState//, IEquatable<TState>
+		, WidgetBehaviour.ITemplateMethods
+		where TState:struct, IWidgetState//, IEquatable<TState>
 	{
 		/// <summary>
 		/// Current state of the widget.
@@ -55,23 +59,25 @@ namespace com.cratesmith.widgets
 			LogInternal($"Widget {name} state changed to [{State}]");
 			SetDirty();
 		}
-
-		protected override void OnRefresh(ref WidgetBuilder builder)
+		
+		public override void ResetState()
 		{
-            var prefab = this.GetPrefab();
+			SetState(default);
+		}
+		public void InternalPreRefresh(ref WidgetBuilder builder)
+		{
+			var prefab = this.GetPrefab();
 			State.layoutElement.Apply(LayoutElement, prefab.LayoutElement, UsesTypePrefab);
 			State.rectTransform.Apply(RectTransform, Application.isPlaying && HasRefreshed ? RectTransform : prefab.RectTransform, UsesTypePrefab);
 			State.contentSizeFitter.Apply(ContentSizeFitter, prefab.ContentSizeFitter, UsesTypePrefab);
 			DebugLogging = GetValue(State.debugLogging, prefab.DebugLogging);
-            var _contentSizeFitterEnabled = ContentSizeFitter.horizontalFit != ContentSizeFitter.FitMode.Unconstrained
-                                        || ContentSizeFitter.verticalFit != ContentSizeFitter.FitMode.Unconstrained;
+		}
+		public void InternalPostRefresh(ref WidgetBuilder builder)
+		{
+			var _contentSizeFitterEnabled = ContentSizeFitter.horizontalFit != ContentSizeFitter.FitMode.Unconstrained
+			                                || ContentSizeFitter.verticalFit != ContentSizeFitter.FitMode.Unconstrained;
 			if (_contentSizeFitterEnabled != ContentSizeFitter.enabled)
 				ContentSizeFitter.enabled = _contentSizeFitterEnabled;
-			}
-
-		public override void ResetState()
-		{
-			SetState(default);
 		}
 	}
 
@@ -85,6 +91,12 @@ namespace com.cratesmith.widgets
 		, WidgetBuilder.ISecret
 		, IWidgetHasEvent<EHovered>, IPointerEnterHandler, IPointerExitHandler
 	{
+		internal interface ITemplateMethods
+		{
+			void InternalPreRefresh(ref WidgetBuilder builder);
+			void InternalPostRefresh(ref WidgetBuilder builder);
+		}
+		
         [SerializeField, ReadOnlyField] protected RectTransform m_RectTransform;
 		public RectTransform RectTransform => m_RectTransform;
 
@@ -139,8 +151,8 @@ namespace com.cratesmith.widgets
 
 			public static implicit operator WidgetChild(WidgetChild<TWidget> @this)
 			{
-                return new WidgetChild()
-				{
+                return new WidgetChild
+                {
 					widget = @this.widget,
 					prefabInstance = @this.prefabInstance
 				};
@@ -148,8 +160,8 @@ namespace com.cratesmith.widgets
 
 			public static implicit operator WidgetChild<TWidget>(WidgetChild @this)
 			{
-                return new WidgetChild<TWidget>()
-				{
+                return new WidgetChild<TWidget>
+                {
 					widget = @this.widget as TWidget,
 					prefabInstance = @this.prefabInstance
 				};
@@ -191,7 +203,7 @@ namespace com.cratesmith.widgets
             public Dictionary<WidgetContext, ContextGroup>  ContextGroups {get; private set;} = new Dictionary<WidgetContext, ContextGroup>();
 			public List<WidgetChild> WidgetsInOrder = new List<WidgetChild>();
 			public int EditingIndex { get; private set; } = -1;
-            public bool OrderChanged { get; private set; } = false;
+            public bool OrderChanged { get; private set; }
 			public int Count => WidgetsInOrder.Count;
 			public int DefaultSortingGroup { get; private set; }
 
@@ -245,7 +257,7 @@ namespace com.cratesmith.widgets
 					_rootPrefab = null;
 				}
 
-				var sorting = new WidgetSorting(_sortingGroup, this.EditingIndex);
+				var sorting = new WidgetSorting(_sortingGroup, EditingIndex);
 				
 				bool isNew = false;
 				WidgetChild<TWidget> result = default;
@@ -256,7 +268,7 @@ namespace com.cratesmith.widgets
 					result = existingChild;
 					if (!sorting.Equals(result.prefabInstance.Sorting))
 					{
-						((WidgetBuilder.ISecret)result.widget).SetSorting(sorting);
+						((WidgetBuilder.ISecret)widget).SetSorting(sorting);
 						OrderChanged = true;
 					}
 				}
@@ -518,14 +530,17 @@ namespace com.cratesmith.widgets
 			// this handles the case non-spawned root widgets that wouldn't have Init called otherwise
 			if (!HasRefreshed && Is.Null(OwnerWidget))
 			{
-				var prefab = WidgetManager.LookupPrefab(this.GetType());
+				var prefab = WidgetManager.LookupPrefab(GetType());
 				((WidgetBuilder.ISecret)this).Init(prefab, null, this, this.AsContextReference(), default);
 			}
 			
             var builder = new WidgetBuilder(this, this);
-			IsDirty = false;
+            IsDirty = false;
 			IsRefreshing = true;
+			var templated = this as ITemplateMethods;
+			templated?.InternalPreRefresh(ref builder);
 			OnRefresh(ref builder);
+			templated?.InternalPostRefresh(ref builder);
 			builder.EndChildren();
 
 			if (m_InternalChildren.OrderChanged || m_OwnerChildren.OrderChanged)
@@ -550,7 +565,7 @@ namespace com.cratesmith.widgets
 		/// Mark this widget as dirty.
 		/// This will schedule a Refresh of the Widget if not already dirty.
 		/// </summary>
-		public bool SetDirty(bool forceImmediate = false)
+		public bool SetDirty(bool mustRefreshThisFrame = false) 
 		{
 			if (IsDirty)
 				return false;
@@ -564,7 +579,7 @@ namespace com.cratesmith.widgets
                     var current = s_SetDirtyStack.Pop();
                     if (!Is.Spawned(current) || current.IsDirty) continue;
 					current.IsDirty = true;
-					WidgetManager.MarkForRebuild(current, forceImmediate);
+					WidgetManager.MarkForRebuild(current, mustRefreshThisFrame);
 				}
 			}
 			LogInternal($"Widget {name} set dirty");
@@ -604,7 +619,7 @@ namespace com.cratesmith.widgets
 			if (Is.Null(_prefab))
 			{
 				_prefab = this;
-				UsesTypePrefab = true;
+				UsesTypePrefab = _ownerWidget != this; // self-owned widgets are user created in editor
 			} else
 			{
 				UsesTypePrefab = _prefab.UsesTypePrefab;
@@ -678,7 +693,7 @@ namespace com.cratesmith.widgets
 
 		protected virtual void OnEnable()
 		{
-			SetDirty(true);
+			SetDirty();
 		}
 
 		protected virtual void OnDisable()
@@ -789,7 +804,7 @@ namespace com.cratesmith.widgets
             var offset = RectTransform.childCount - m_InternalChildren.Count - m_OwnerChildren.Count - m_StaticChildren.Count;
             foreach (var child in m_StaticChildren)
             {
-	            child.RectTransform.SetSiblingIndex(offset+_InsertSortedBinary(m_Children, new WidgetChild()
+	            child.RectTransform.SetSiblingIndex(offset+_InsertSortedBinary(m_Children, new WidgetChild
 	            {
 		            prefabInstance = child,
 		            widget = child
@@ -903,5 +918,85 @@ namespace com.cratesmith.widgets
 				}
 			}
 		}
+#if UNITY_EDITOR
+		[CanEditMultipleObjects]
+		[CustomEditor(typeof(WidgetBehaviour), true)]
+		public class DefaultInspector : Editor
+		{
+			public override void OnInspectorGUI()
+			{
+				if (targets.Length==1)
+				{
+					WidgetInfo();
+				}
+
+				if ((target.hideFlags & HideFlags.DontSave)!=0)
+				{
+					GUI.color = Color.magenta;
+					using (new GUILayout.VerticalScope("box"))
+					{
+						GUI.color = Color.white;
+						using (new GUILayout.VerticalScope(GUILayout.MaxHeight(20)))
+						{
+							EditorGUILayout.HelpBox("This is a temporary widget. Changes will not be saved", MessageType.Warning);
+						}
+						base.OnInspectorGUI();
+					}
+				}
+				else 
+					base.OnInspectorGUI();
+			}
+			
+			void WidgetInfo()
+			{
+				var wb = (WidgetBehaviour)target;
+				using (new EditorGUILayout.VerticalScope("box"))
+				{
+					if (!wb.gameObject.activeSelf)
+					{
+						if(wb.UsesTypePrefab)
+							EditorGUILayout.HelpBox("This is an CODE GENERATED widget PREFAB.", MessageType.Info);
+						else
+							EditorGUILayout.HelpBox("This is an USER CREATED widget PREFAB.", MessageType.Info);
+					}
+					else if (wb.OwnerWidget==wb)
+					{
+						EditorGUILayout.HelpBox("This is an USER CREATED widget instance.", MessageType.Info);
+					} else
+					{
+						EditorGUILayout.HelpBox("This is a CODE GENERATED widget instance.", MessageType.Info);
+					}
+
+					if (Is.NotNull(wb.Prefab) && wb.Prefab!=wb)
+					{
+						SelectField("Prefab", wb.Prefab, typeof(MonoScript), true);	
+					}
+				
+					if (Is.NotNull(wb.OwnerWidget))
+					{
+						if(wb.OwnerWidget==wb.OwnerWidget.OwnerWidget)
+							SelectField("Owner", wb.OwnerWidget, typeof(WidgetBehaviour), true);
+						else if (wb.OwnerWidget.UsesTypePrefab)
+							SelectField("Owner Script", MonoScript.FromMonoBehaviour(wb.OwnerWidget), typeof(MonoScript), false);
+						else
+							SelectField("Owner Prefab", wb.OwnerWidget.Prefab, typeof(WidgetBehaviour), true);
+					}
+				}
+			}
+
+			void SelectField(string _label, Object _object, Type _type, bool _allowSceneObejects)
+			{
+				using (new GUILayout.HorizontalScope())
+				{
+					EditorGUILayout.ObjectField(_label, _object, _type, _allowSceneObejects);
+					if (_object && GUILayout.Button("Select", GUILayout.Width(60)))
+					{
+						Selection.activeObject = _object;
+						EditorGUIUtility.PingObject(_object);
+					}
+				}
+			}
+		}
+#endif
 	}
 }

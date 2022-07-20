@@ -362,14 +362,14 @@ namespace com.cratesmith.widgets
 			_output = s_Instance;
 			return _output;
 		}
-		public static void MarkForRebuild(WidgetBehaviour _widgetBehaviour, bool _forceImmediate)
+		public static void MarkForRebuild(WidgetBehaviour _widgetBehaviour, bool _mustRefreshThisFrame) 
 		{
 			if (Application.isPlaying)
 			{
                 TryGet(out var manager);
 			}
 
-            var refreshList = s_CurrentRefreshDepth < _widgetBehaviour.Depth || _forceImmediate
+            var refreshList = s_CurrentRefreshDepth < _widgetBehaviour.Depth || _mustRefreshThisFrame
 				? s_RefreshByDepth
 				: s_NextRefreshByDepth;
 
