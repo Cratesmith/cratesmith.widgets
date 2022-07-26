@@ -6,8 +6,9 @@ namespace com.cratesmith.widgets
 {
     public struct SPanel : IWidgetStateLayoutGroup<WidgetBasicLayout>, IEquatable<SPanel>
     {
-        public Optional<Sprite> backgroundSprite;
-        public Optional<Color>  backgroundColor;
+        public Optional<bool>             backgroundRaycastTarget;
+        public Optional<Sprite>           backgroundSprite;
+        public Optional<Color>            backgroundColor;
         public Optional<WidgetRectOffset> backgroundOffset;
 
         public WidgetRectTransform rectTransform { get; set; }
@@ -39,12 +40,14 @@ namespace com.cratesmith.widgets
         {
             unchecked
             {
-                var hashCode = backgroundSprite.GetHashCode();
+                int hashCode = backgroundRaycastTarget.GetHashCode();
+                hashCode = (hashCode * 397) ^ backgroundSprite.GetHashCode();
                 hashCode = (hashCode * 397) ^ backgroundColor.GetHashCode();
                 hashCode = (hashCode * 397) ^ backgroundOffset.GetHashCode();
                 hashCode = (hashCode * 397) ^ rectTransform.GetHashCode();
                 hashCode = (hashCode * 397) ^ layoutElement.GetHashCode();
                 hashCode = (hashCode * 397) ^ contentSizeFitter.GetHashCode();
+                hashCode = (hashCode * 397) ^ debugLogging.GetHashCode();
                 hashCode = (hashCode * 397) ^ layoutGroup.GetHashCode();
                 hashCode = (hashCode * 397) ^ autoDisableLayoutGroup.GetHashCode();
                 return hashCode;
@@ -64,9 +67,10 @@ namespace com.cratesmith.widgets
     
     public class WPanel : WBasicLayout<SPanel>
     {
-        [SerializeField] Sprite m_BackgroundSprite;
-        [SerializeField] Color  m_BackgroundColor = new Color(0,0,0,.5f);
+        [SerializeField] Sprite           m_BackgroundSprite;
+        [SerializeField] Color            m_BackgroundColor  = new Color(0,0,0,.5f);
         [SerializeField] WidgetRectOffset m_BackgroundOffset = new WidgetRectOffset(-2, -2, -2, -2);
+        [SerializeField] bool             m_BackgroundRaycastTarget = true;
 
         protected override void OnRefresh(ref WidgetBuilder builder)
         {
@@ -79,7 +83,7 @@ namespace com.cratesmith.widgets
                 sprite = GetValue(State.backgroundSprite, prefab.m_BackgroundSprite),
                 color = GetValue(State.backgroundColor, prefab.m_BackgroundColor),
                 imageType = Image.Type.Sliced,
-                raycastTarget = true,
+                raycastTarget = GetValue(State.backgroundRaycastTarget, prefab.m_BackgroundRaycastTarget),
             }).Sorting(0);
 
             base.OnRefresh(ref builder);

@@ -100,10 +100,6 @@ namespace com.cratesmith.widgets
             {
                 State.layoutGroup.Apply(m_BasicLayoutGroup, this.GetPrefab().m_BasicLayoutGroup, UsesTypePrefab);
             }
-            LayoutRebuilder.MarkLayoutForRebuild(RectTransform); // do this beforehand so LayoutGroup.DelayedSetDirty isn't called.
-            // if (State.layoutGroup.Apply(m_BasicLayoutGroup, this.GetPrefab().m_BasicLayoutGroup, UsesTypePrefab)
-            //          || !HasRefreshed) 
-            //      LayoutRebuilder.MarkLayoutForRebuild(RectTransform); // do this beforehand so LayoutGroup.DelayedSetDirty isn't called.
         }
 
         protected override void OnPostRefresh()
@@ -111,6 +107,9 @@ namespace com.cratesmith.widgets
             var prefab = this.GetPrefab();
             if(State.autoDisableLayoutGroup.GetValue(prefab.m_AutoDisableLayoutGroup,UsesTypePrefab))
                 m_BasicLayoutGroup.enabled = CalcNeedsLayoutGroup();
+            
+            if(m_BasicLayoutGroup.enabled)
+                LayoutRebuilder.MarkLayoutForRebuild(RectTransform);
         }
 
         bool CalcNeedsLayoutGroup()

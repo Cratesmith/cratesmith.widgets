@@ -78,6 +78,9 @@ namespace com.cratesmith.widgets
 			var prefab = this.GetPrefab();
 			if (State.autoDisableLayoutGroup.GetValue(prefab.m_AutoDisableLayoutGroup, UsesTypePrefab))
 				m_GridLayoutGroup.enabled = CalcNeedsLayoutGroup();
+			
+			if(m_GridLayoutGroup.enabled)
+				LayoutRebuilder.MarkLayoutForRebuild(RectTransform); 
 		}
 
 		bool CalcNeedsLayoutGroup()

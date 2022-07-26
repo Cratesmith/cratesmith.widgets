@@ -869,7 +869,8 @@ namespace com.cratesmith.widgets
 		}
 		public void OnPointerEnter(PointerEventData eventData)
 		{
-			this.SetEvent(default(EHovered));
+			if(HasRefreshed)
+				this.SetEvent(default(EHovered));
 		}
 
 		[Conditional("WIDGETS_LOG_ERROR")]
