@@ -705,7 +705,8 @@ namespace com.cratesmith.widgets
 
 		protected virtual void OnEnable()
 		{
-			SetDirty();
+			IsDirty = false;
+			SetDirty(true);
 		}
 
 		protected virtual void OnDisable()

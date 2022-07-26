@@ -64,13 +64,10 @@ namespace com.cratesmith.widgets
 
 		protected override void OnRefresh(ref WidgetBuilder builder)
 		{
-			// if (State.layoutGroup.Apply(m_GridLayoutGroup, this.GetPrefab().m_GridLayoutGroup, UsesTypePrefab) || !HasRefreshed)
 			if (!IsSelfOwned)
 			{
 				State.layoutGroup.Apply(m_GridLayoutGroup, this.GetPrefab().m_GridLayoutGroup, UsesTypePrefab);
 			}
-			LayoutRebuilder.MarkLayoutForRebuild(RectTransform); // do this beforehand so LayoutGroup.DelayedSetDirty isn't called.
-
 		}
 
 		protected override void OnPostRefresh()
