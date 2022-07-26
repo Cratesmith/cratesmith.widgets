@@ -31,18 +31,28 @@ namespace com.cratesmith.widgets
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
 			EditorGUI.PrefixLabel(position, label);
-
+			
 			var x = position.x + EditorGUIUtility.labelWidth;
 			var height = EditorGUIUtility.singleLineHeight;
 
 			var buttonRect = new Rect(x, position.y, height, height);
 			property.isExpanded = GUI.Toggle(buttonRect, property.isExpanded, new GUIContent(""), "button"); 
 			var imageRect = new Rect(buttonRect.x+1, buttonRect.y+1, buttonRect.width-2, buttonRect.height-2);
-			GUI.DrawTexture(imageRect, EditorGUIUtility.ObjectContent(null, property.isExpanded 
+			GUI.DrawTexture(imageRect, EditorGUIUtility.ObjectContent(null, !property.isExpanded 
 				                                                          ? typeof(SceneAsset)
 				                                                          : typeof(GameObject)).image);
-			
-			if(property.isExpanded)
+
+			var spPrefab = property.FindPropertyRelative("prefab");
+			var spWidget = property.FindPropertyRelative("widget");
+			if (spPrefab.hasMultipleDifferentValues || spWidget.hasMultipleDifferentValues)
+			{
+				var width = (position.width-EditorGUIUtility.labelWidth-height);
+				var leftRect = new Rect(x, position.y, width*.6f, height);
+				var rightRect = new Rect(x + width*.6f, position.y, width*.4f, EditorGUIUtility.singleLineHeight);
+				EditorGUI.PropertyField(leftRect, spPrefab, GUIContent.none);
+				EditorGUI.PropertyField(rightRect, spWidget, GUIContent.none);
+			}
+			else if(!property.isExpanded)
 				OnGUI_FromScene(position, property);
 			else 
 				OnGUI_FromPrefab(position, property);
@@ -60,12 +70,20 @@ namespace com.cratesmith.widgets
 			var leftRect = new Rect(x, position.y, width*.6f, height);
 			var rightRect = new Rect(x + width*.6f, position.y, width*.4f, EditorGUIUtility.singleLineHeight);
 
+			EditorGUI.BeginChangeCheck();
 			EditorGUI.PropertyField(leftRect, spPrefab, GUIContent.none);
-			
-			if (spWidget.hasMultipleDifferentValues)
+			var prefabChanged = EditorGUI.EndChangeCheck();
+			if (prefabChanged)
 			{
-				EditorGUI.PropertyField(rightRect, spWidget, GUIContent.none);
-				return;
+				if (Is.Null(spPrefab.objectReferenceValue as WidgetBehaviour))
+				{
+					spWidget.objectReferenceValue = null;
+				} 
+				else if(Is.Null(spWidget.objectReferenceValue as WidgetBehaviour) 
+				          || !((WidgetBehaviour)spWidget.objectReferenceValue).transform.IsChildOf(((WidgetBehaviour)spPrefab.objectReferenceValue).transform))
+				{
+					spWidget.objectReferenceValue = ((WidgetBehaviour)spPrefab.objectReferenceValue).GetComponentInChildren(fieldType);
+				}
 			}
 			
 			var widget = (WidgetBehaviour)spWidget.objectReferenceValue;
@@ -92,24 +110,23 @@ namespace com.cratesmith.widgets
 						};
 					}
 				}
-				return;
-			}
-
-			var options = new List<Component>();
-			if(Is.NotNull(prefab))
-				options.AddRange(prefab.GetComponentsInChildren(fieldType, true));
-
-			if (options.Count == 0)
+			} else
 			{
-				EditorGUI.HelpBox(rightRect, $"No {fieldType.Name}!", MessageType.Warning);
-				spWidget.objectReferenceValue = null;
-				return;
+				var options = new List<Component>();
+				options.AddRange(prefab.GetComponentsInChildren(fieldType, true));
+				if (options.Count == 0)
+				{
+					EditorGUI.HelpBox(rightRect, $"No {fieldType.Name}!", MessageType.Warning);
+					spWidget.objectReferenceValue = null;
+				} else
+				{
+					var currentId = options.IndexOf((Component)spWidget.objectReferenceValue);
+					var newId =  EditorGUI.Popup(rightRect, currentId, options.Select(x => x.name).ToArray());
+					if(newId!=currentId)
+						spWidget.objectReferenceValue = newId >= 0 ? options[newId]:null;
+					
+				}
 			}
-
-			var currentId = options.IndexOf((Component)spWidget.objectReferenceValue);
-			var newId =  EditorGUI.Popup(rightRect, currentId, options.Select(x => x.name).ToArray());
-			if(newId!=currentId)
-				spWidget.objectReferenceValue = newId >= 0 ? options[newId]:null;
 		}
 		
 		static void OnGUI_FromScene(Rect position, SerializedProperty property)
@@ -126,28 +143,20 @@ namespace com.cratesmith.widgets
 
 			EditorGUI.PropertyField(rightRect, spWidget, GUIContent.none);
 
-			if (!spWidget.hasMultipleDifferentValues)
+		
+			var widgetTransform = spWidget.objectReferenceValue
+				? ((WidgetBehaviour)spWidget.objectReferenceValue).transform
+				: null;
+
+			var prefabTransform = spPrefab.objectReferenceValue
+				? ((WidgetBehaviour)spPrefab.objectReferenceValue).transform
+				: null;
+
+			if (prefabTransform 
+			    && prefabTransform!=widgetTransform
+			    && widgetTransform && !widgetTransform.IsChildOf(prefabTransform))
 			{
-				var widgetTransform = spWidget.objectReferenceValue
-					? ((WidgetBehaviour)spWidget.objectReferenceValue).transform
-					: null;
-
-				var prefabTransform = spPrefab.objectReferenceValue
-					? ((WidgetBehaviour)spPrefab.objectReferenceValue).transform
-					: null;
-
-				if (prefabTransform 
-				    && prefabTransform!=widgetTransform
-				    && widgetTransform && !widgetTransform.IsChildOf(prefabTransform))
-				{
-					spPrefab.objectReferenceValue = spWidget.objectReferenceValue;
-				}
-			}
-
-			if (spWidget.hasMultipleDifferentValues)
-			{
-				EditorGUI.PropertyField(leftRect, spWidget, GUIContent.none);
-				return;
+				spPrefab.objectReferenceValue = spWidget.objectReferenceValue;
 			}
 
 			var widget = (WidgetBehaviour)spWidget.objectReferenceValue;
@@ -181,6 +190,7 @@ namespace com.cratesmith.widgets
 			var newId = EditorGUI.Popup(leftRect, currentId, options.Select(x => x.name).ToArray());
 			if(currentId!=newId)
 				spPrefab.objectReferenceValue = newId >= 0 ? options[newId]:null;
+			
 		}
 	}
 #endif

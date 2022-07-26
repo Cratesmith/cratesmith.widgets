@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.UI;
@@ -58,13 +59,36 @@ namespace com.cratesmith.widgets
 
 		static void EditorRefreshSelection()
 		{
+		    var burnAndRebuild = new List<WidgetBehaviour>();
+		
             foreach (var go in Selection.gameObjects)
-				{
-                if (!go.TryGetComponent(out WidgetBehaviour wb)) continue;
-				if (wb.SetDirty())
-				{
-					//Debug.Log($"Setting {wb.name}({wb.gameObject.scene.name}) dirty by selection edit");
-				}
+            {
+	            if (!go)
+	            {
+		            continue;
+	            }
+                if (go.TryGetComponent(out WidgetBehaviour wb))
+					wb.SetDirty();
+                else if(s_InstancesInEditor.TryGetValue(go, out var list))
+                {
+	                foreach (var widget in list)
+	                {
+		                if (!Is.Spawned(widget) || (widget.gameObject.hideFlags & HideFlags.DontSave)!=0)
+			                continue;
+		                
+		                burnAndRebuild.Add(widget);
+	                }
+                }
+
+                if (burnAndRebuild.Count > 0)
+                {
+	                foreach(var widget in burnAndRebuild)
+	                {
+		                widget.OwnerWidget.SetDirty(true);
+		                WidgetManager.Despawn(widget);
+	                }
+					RefreshDirty();	                
+                }
 			}
 		}
 
@@ -134,18 +158,22 @@ namespace com.cratesmith.widgets
 		}
 
 		public static WidgetBehaviour.WidgetChild<TWidget> SpawnChild<TWidget>(TWidget _widget, WidgetBehaviour _prefab, WidgetBehaviour _parentWidget, WidgetBehaviour _ownerWidget, WidgetContext _context, WidgetSorting _sorting) where TWidget : WidgetBehaviour
-            => Spawn(_widget, _prefab, _parentWidget.RectTransform, _parentWidget, _ownerWidget, _context, _sorting);
+            => Spawn(_widget, _prefab, _parentWidget, _ownerWidget, _context, _sorting);
 
 
 		static Stack<int> s_BackwalkStack = new Stack<int>();
-		static WidgetBehaviour.WidgetChild<TWidget> Spawn<TWidget>(TWidget _widget, WidgetBehaviour _prefab, RectTransform _parent, WidgetBehaviour _parentWidget, WidgetBehaviour _ownerWidget, WidgetContext _context, WidgetSorting _sorting) where TWidget : WidgetBehaviour
+		static WidgetBehaviour.WidgetChild<TWidget> Spawn<TWidget>(TWidget _widget, WidgetBehaviour _prefab, WidgetBehaviour _parentWidget, WidgetBehaviour _ownerWidget, WidgetContext _context, WidgetSorting _sorting) where TWidget : WidgetBehaviour
 		{
 			WidgetBehaviour prefabInstance = null;
 			TWidget widgetInstance = null;
             TryGet(out var manager);
 
+
 			Assert.IsTrue(Is.Spawned(_parentWidget));
 			Assert.IsTrue(Is.Spawned(_ownerWidget));
+			Assert.IsTrue(_parentWidget.transform.IsChildOf(_ownerWidget.transform));
+			
+			var parentTransform = _parentWidget.RectTransform;
 
 			if (Is.Null(_prefab))
 			{
@@ -153,6 +181,31 @@ namespace com.cratesmith.widgets
 			}
 
 			_prefab = LookupPrefab(typeof(TWidget), _prefab);
+			
+			if (Is.NotNull(_widget) && _parentWidget.transform.IsChildOf(_widget.transform))
+			{
+				Debug.LogError($"did not find prefab root:{_widget.name} as a parent of widget prefab:{_widget.name}");
+				_widget = null;
+				_prefab = null;
+			}
+
+			if (Is.NotNull(_widget) && !_widget.transform.IsChildOf(_prefab.transform))
+			{
+				Debug.LogError($"did not find prefab root:{_prefab.name} as a parent of widget prefab:{_widget.name}");
+				_prefab = _widget;
+			}
+
+			if (Is.NotNull(_parentWidget) && parentTransform.IsChildOf(_prefab.transform))
+			{
+				Debug.LogError($"prefab for widget {_widget.name} (parent {_parentWidget.name}) appears to be cyclic");
+				_prefab = _widget;
+			}
+			
+			if (Is.NotNull(_ownerWidget) && _ownerWidget.transform.IsChildOf(_prefab.transform))
+			{
+				Debug.LogError($"prefab for widget {_widget.name} (owner {_ownerWidget.name}) appears to be cyclic");
+				_prefab = _widget;
+			}
 
 			if (manager)
 			{
@@ -167,7 +220,7 @@ namespace com.cratesmith.widgets
 					Assert.IsTrue(prefabInstance.Despawned);
 				}
 			}
-
+			
 			lock (s_BackwalkStack)
 			{
 				s_BackwalkStack.Clear();
@@ -179,29 +232,16 @@ namespace com.cratesmith.widgets
 					{
 						s_BackwalkStack.Push(current.GetSiblingIndex());
 						current = current.parent;
-						if (!current)
-						{
-							Debug.LogError($"did not find prefab root:{_prefab.name} as a parent of widget prefab:{_widget.name}");
-							s_BackwalkStack.Clear();
-							_prefab = _widget;
-                        }
-                        else if (current == _ownerWidget.RectTransform)
-						{
-							Debug.LogError($"prefab for widget {_widget.name} (owner {_ownerWidget.name}) appears to be cyclic");
-							s_BackwalkStack.Clear();
-							_prefab = _widget;
-						}
 					}
 				}
 
 				if (Is.Null(prefabInstance))
 				{
-					prefabInstance = InstantiateNew(_prefab, _parent);
-					prefabInstance.gameObject.hideFlags = HideFlags.DontSave;
+					prefabInstance = InstantiateNew(_prefab, parentTransform);
                 }
                 else
 				{
-					prefabInstance.transform.SetParent(_parent);
+					prefabInstance.transform.SetParent(parentTransform);
 				}
 
                 if (Is.NotNull(_widget)
@@ -234,9 +274,9 @@ namespace com.cratesmith.widgets
 
 			Assert.IsTrue(Is.Spawned(prefabInstance));
 			Assert.IsTrue(Is.Spawned(widgetInstance));
-			Assert.IsTrue(prefabInstance.RectTransform.IsChildOf(_parent));
+			Assert.IsTrue(prefabInstance.RectTransform.IsChildOf(parentTransform));
 			if(s_Instance)
-				Assert.IsFalse(_parent == s_Instance.transform);
+				Assert.IsFalse(parentTransform == s_Instance.transform);
 
 #if UNITY_EDITOR
 			EditorRegisterPrefabInstance(prefabInstance, _prefab);
@@ -246,6 +286,9 @@ namespace com.cratesmith.widgets
 			{
 				prefabInstance.LogInternal($"Spawned instance {prefabInstance} from prefab {_prefab}");
 			}
+			
+			prefabInstance.gameObject.hideFlags = HideFlags.DontSave;
+			widgetInstance.gameObject.hideFlags = HideFlags.DontSave;
 			
 			return new WidgetBehaviour.WidgetChild<TWidget>
 			{
@@ -362,14 +405,14 @@ namespace com.cratesmith.widgets
 			_output = s_Instance;
 			return _output;
 		}
-		public static void MarkForRebuild(WidgetBehaviour _widgetBehaviour, bool _forceImmediate)
+		public static void MarkForRebuild(WidgetBehaviour _widgetBehaviour, bool _mustRefreshThisFrame) 
 		{
 			if (Application.isPlaying)
 			{
                 TryGet(out var manager);
 			}
 
-            var refreshList = s_CurrentRefreshDepth < _widgetBehaviour.Depth || _forceImmediate
+            var refreshList = s_CurrentRefreshDepth < _widgetBehaviour.Depth || _mustRefreshThisFrame
 				? s_RefreshByDepth
 				: s_NextRefreshByDepth;
 

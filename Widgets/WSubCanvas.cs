@@ -66,6 +66,8 @@ namespace com.cratesmith.widgets
 
 		protected override void OnRefresh(ref WidgetBuilder builder)
 		{
+			base.OnRefresh(ref builder);
+
 			var prefab = this.GetPrefab();
 			var _overrideSorting = GetValue(State.overrideSorting, prefab.m_Canvas.overrideSorting);
 			if (_overrideSorting != m_Canvas.overrideSorting)
@@ -96,8 +98,6 @@ namespace com.cratesmith.widgets
 			{
 				m_Canvas.additionalShaderChannels = _additionalShaderChannels;
 			}
-			
-			base.OnRefresh(ref builder);
 		}
 	}
 }

@@ -82,7 +82,7 @@ namespace com.cratesmith.widgets
                 // if this edit is coming from the owner, we need to set our parent dirty to ensure order is preserved
                 if (m_ParentWidget != m_OwnerWidget && Is.Spawned(m_ParentWidget.ParentWidget))
                 {
-                    m_ParentWidget.ParentWidget.SetDirty(true);
+                    m_ParentWidget.ParentWidget.SortChildren();
                 }
             }
         }

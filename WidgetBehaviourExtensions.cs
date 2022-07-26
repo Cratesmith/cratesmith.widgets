@@ -14,8 +14,9 @@
             where TWidget : WidgetBehaviour, IWidgetHasEvent<TEvent>
             where TEvent : struct, IWidgetEvent
         {
+            _widget.LogEvents($"{_widget} set event {typeof(TEvent).Name}: {_event}");
             _widget.EventStorage.Set(_event);
-            if (Is.NotNull(_widget.OwnerWidget))
+            if (Is.Spawned(_widget.OwnerWidget))
             {
                 _widget.OwnerWidget.SetDirty();
             }
