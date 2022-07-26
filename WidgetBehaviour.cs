@@ -547,7 +547,7 @@ namespace com.cratesmith.widgets
 			}
 			
             var builder = new WidgetBuilder(this, this);
-			IsDirty = false;
+            IsDirty = false;
 			IsRefreshing = true;
 			var templated = this as ITemplateMethods;
 			templated?.PreRefresh(ref builder);
@@ -631,7 +631,7 @@ namespace com.cratesmith.widgets
 			if (Is.Null(_prefab))
 			{
 				_prefab = this;
-				UsesTypePrefab = true;
+				UsesTypePrefab = _ownerWidget != this; // self-owned widgets are user created in editor
 			} else
 			{
 				UsesTypePrefab = _ownerWidget!=this && _prefab.UsesTypePrefab;
@@ -705,7 +705,7 @@ namespace com.cratesmith.widgets
 
 		protected virtual void OnEnable()
 		{
-			SetDirty(true);
+			SetDirty();
 		}
 
 		protected virtual void OnDisable()
