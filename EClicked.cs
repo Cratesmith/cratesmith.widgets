@@ -10,5 +10,7 @@ namespace com.cratesmith.widgets
 		{
 			frame = Time.frameCount,
 		};
+
+		public static implicit operator bool(EClicked _clicked) => _clicked.CheckValid();
 	}
 }

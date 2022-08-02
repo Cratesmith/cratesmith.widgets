@@ -45,6 +45,9 @@ namespace com.cratesmith.widgets
             void SetContext(WidgetContext _context);
             
             void SetSorting(WidgetSorting sorting);
+            void ClearEventSubscriptions();
+            T SubscribeAndGetEvent<T>() where T : struct, IWidgetEvent;
+            bool IsSubscribedToEvent<T>() where T : struct, IWidgetEvent;
         }
         public WidgetBehaviour ParentWidget => m_ParentWidget;
         public WidgetBehaviour OwnerWidget => m_OwnerWidget;
@@ -80,9 +83,11 @@ namespace com.cratesmith.widgets
             if (m_Children.OrderChanged)
             {
                 // if this edit is coming from the owner, we need to set our parent dirty to ensure order is preserved
-                if (m_ParentWidget != m_OwnerWidget && Is.Spawned(m_ParentWidget.ParentWidget))
+                if (m_ParentWidget.ParentWidget != m_OwnerWidget 
+                    && Is.Spawned(m_ParentWidget.ParentWidget) 
+                    && !m_ParentWidget.ParentWidget.IsRefreshing)
                 {
-                    m_ParentWidget.ParentWidget.SetDirty(true);
+                    m_ParentWidget.ParentWidget.SetDirty();
                 }
             }
         }
@@ -91,8 +96,5 @@ namespace com.cratesmith.widgets
         {
             EndChildren();
         }
-        
-        public bool HasEvent<T>() where T: struct, IWidgetEvent => m_ParentWidget.HasEvent<T>();
-        public bool HasEvent<T>(out T status) where T: struct, IWidgetEvent => m_ParentWidget.HasEvent<T>(out status);
     }
 }

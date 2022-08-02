@@ -362,17 +362,18 @@ namespace com.cratesmith.widgets
 			_output = s_Instance;
 			return _output;
 		}
+		
 		public static void MarkForRebuild(WidgetBehaviour _widgetBehaviour, bool _mustRefreshThisFrame) 
 		{
 			if (Application.isPlaying)
 			{
-                TryGet(out var manager);
+				TryGet(out var manager); // This just ensures the manager is created here if not already
 			}
 
             var refreshList = s_CurrentRefreshDepth < _widgetBehaviour.Depth || _mustRefreshThisFrame
 				? s_RefreshByDepth
 				: s_NextRefreshByDepth;
-
+            
 			for (int i = refreshList.Count; i <= _widgetBehaviour.Depth; i++)
 			{
 				refreshList.Add(new List<WidgetBehaviour>());
@@ -452,51 +453,94 @@ namespace com.cratesmith.widgets
 
 		static void RefreshDirty()
 		{
-			while (true)
+			const int MAX_PASSES = 3;
+			for (int pass = 0; pass < MAX_PASSES; pass++)
 			{
+
 				s_CurrentRefreshDepth = 0;
-				while (s_CurrentRefreshDepth < s_RefreshByDepth.Count && s_RefreshByDepth[s_CurrentRefreshDepth].Count == 0)
-					++s_CurrentRefreshDepth;
-
-				if (s_CurrentRefreshDepth >= s_RefreshByDepth.Count)
-					break;
-
-                var refreshList = s_RefreshByDepth[s_CurrentRefreshDepth];
-                for (var j = 0; j < refreshList.Count; j++)
+				while (s_CurrentRefreshDepth < s_RefreshByDepth.Count)
 				{
-                    var widgetBehaviour = refreshList[j];
-					if (!Is.Spawned(widgetBehaviour))
-						continue;
+					if (s_RefreshByDepth[s_CurrentRefreshDepth].Count > 0)
+						RefreshDirtyListAndClear(s_RefreshByDepth[s_CurrentRefreshDepth]);
 
-					if (!widgetBehaviour.gameObject.activeInHierarchy)
-					{
-						((WidgetBuilder.ISecret)widgetBehaviour).ClearDirty();
-						continue;
-					}
-
-					try
-					{
-						widgetBehaviour.Refresh();
-
-						// fixes issue with layout lifecycle in edit mode
-						if (!Application.isPlaying)
-						{
-							LayoutRebuilder.ForceRebuildLayoutImmediate(Is.Spawned(widgetBehaviour.ParentWidget)
-								                                            ? widgetBehaviour.ParentWidget.RectTransform : widgetBehaviour.RectTransform);
-						}
-					}
-					catch (Exception e)
-					{
-						Debug.LogException(e);
-					}
+					++s_CurrentRefreshDepth;
 				}
-				refreshList.Clear();
+
+				for (int i = s_CurrentRefreshDepth - 1; i >= 0; i--)
+				{
+					if (s_RefreshByDepth[i].Count > 0)
+						RefreshDirtyListAndClear(s_RefreshByDepth[i]);
+				}
+
+				var anyStillDirty = false;
+				foreach (var list in s_RefreshByDepth)
+				{
+					if (list.Count == 0)
+						continue;
+
+					anyStillDirty = true;
+					break;
+				}
+
+				if (anyStillDirty)
+					break;
 			}
 
+			for (int i = 0; i < s_RefreshByDepth.Count; i++)
+			{
+				if(s_RefreshByDepth[i].Count == 0)
+					continue;
+
+				if(s_NextRefreshByDepth.Count < i)
+					s_NextRefreshByDepth.Add(new List<WidgetBehaviour>());
+
+				foreach (var widget in s_RefreshByDepth[i])
+				{
+					if(!Is.Spawned(widget) || !widget.IsDirty) 
+						continue;
+					
+					widget.LogWarning($"{widget} still dirty at end of refresh (usually due to forced refresh from from an event on it's owner). Deferring update till next frame.");
+					s_NextRefreshByDepth[i].Add(widget);
+				}
+				s_RefreshByDepth[i].Clear();
+			}
+			
 			s_CurrentRefreshDepth = -1;
             var swap = s_RefreshByDepth;
 			s_RefreshByDepth = s_NextRefreshByDepth;
 			s_NextRefreshByDepth = swap;
+		}
+		static void RefreshDirtyListAndClear(List<WidgetBehaviour> refreshList)
+		{
+			for (var j = 0; j < refreshList.Count; j++)
+			{
+				var widgetBehaviour = refreshList[j];
+				if (!Is.Spawned(widgetBehaviour) || !widgetBehaviour.IsDirty)
+					continue;
+
+				if (!widgetBehaviour.gameObject.activeInHierarchy)
+				{
+					((WidgetBuilder.ISecret)widgetBehaviour).ClearDirty();
+					continue;
+				}
+
+				try
+				{
+					widgetBehaviour.Refresh();
+
+					// fixes issue with layout lifecycle in edit mode
+					if (!Application.isPlaying)
+					{
+						LayoutRebuilder.ForceRebuildLayoutImmediate(Is.Spawned(widgetBehaviour.ParentWidget)
+							                                            ? widgetBehaviour.ParentWidget.RectTransform : widgetBehaviour.RectTransform);
+					}
+				}
+				catch (Exception e)
+				{
+					Debug.LogException(e);
+				}
+			}
+			refreshList.Clear();
 		}
 
 		public static void EditorRegisterPrefabInstance(WidgetBehaviour _widget, WidgetBehaviour _prefab, bool _clear = true)

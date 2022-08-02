@@ -15,9 +15,10 @@
             where TEvent : struct, IWidgetEvent
         {
             _widget.EventStorage.Set(_event);
-            if (Is.NotNull(_widget.OwnerWidget))
+            
+            if (Is.NotNull(_widget.OwnerWidget) && ((WidgetBuilder.ISecret)_widget).IsSubscribedToEvent<TEvent>())
             {
-                _widget.OwnerWidget.SetDirty();
+                _widget.OwnerWidget.SetDirty(true);
             }
         }
     }

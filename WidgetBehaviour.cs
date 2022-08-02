@@ -17,6 +17,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using Codice.Client.Common.Locks;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.EventSystems;
@@ -587,6 +588,7 @@ namespace com.cratesmith.widgets
 		}
 
 		public static Stack<WidgetBehaviour> s_SetDirtyStack = new Stack<WidgetBehaviour>();
+		HashSet<Type>                        m_EventSubscriptions = new HashSet<Type>();
 
 		[Obsolete("Casting WidgetBehaviour to bool is not advised: Use Is.Spawned() (active widgets only)  or Is.Null()/Is.NotNull()")]
 		public static implicit operator bool(WidgetBehaviour self)
@@ -835,6 +837,20 @@ namespace com.cratesmith.widgets
 		void WidgetBuilder.ISecret.SetContext(WidgetContext _context)
             => Context = _context;
 		public void SetSorting(WidgetSorting sorting) => Sorting = sorting;
+		void WidgetBuilder.ISecret.ClearEventSubscriptions() { m_EventSubscriptions.Clear(); }
+
+		T WidgetBuilder.ISecret.SubscribeAndGetEvent<T>()
+		{
+			m_EventSubscriptions.Add(typeof(T));
+			if (this is IWidgetHasEvent<T> secret 
+			    && secret.EventStorage.Get(out T status))
+			{
+				return status;
+			}
+			return default;
+		}
+
+		bool WidgetBuilder.ISecret.IsSubscribedToEvent<T>() => m_EventSubscriptions.Contains(typeof(T));
 
 		public virtual void ResetState() { }
 
@@ -891,30 +907,14 @@ namespace com.cratesmith.widgets
 			}
 		}
 
-		public bool HasEvent<T>() where T : struct, IWidgetEvent
-		{
-            return (this is IWidgetHasEvent<T> secret && secret.EventStorage.Get(out var _));
-		}
-
-		public bool HasEvent<T>(out T status) where T : struct, IWidgetEvent
-		{
-            if (this is IWidgetHasEvent<T> secret 
-                && secret.EventStorage.Get(out status))
-			{
-				return true;
-			}
-			status = default;
-			return false;
-		}
-
 		public void ClearEvent<T>() where T : struct, IWidgetEvent
 		{
 			if (this is IWidgetHasEvent<T> secret)
 			{
 				secret.EventStorage.Clear();
-				if (Is.NotNull(OwnerWidget))
+				if (m_EventSubscriptions.Contains(typeof(T)) && Is.Spawned(OwnerWidget))
 				{
-					OwnerWidget.SetDirty();
+					OwnerWidget.SetDirty(true);
 				}
 			}
 		}

@@ -93,7 +93,6 @@ namespace com.cratesmith.widgets
                 m_ButtonStateClick?.Invoke(src);
                 State.onClick?.Invoke(this);
                 m_Clicked.Set(EClicked.ThisFrame());
-                if (Is.Spawned(OwnerWidget)) OwnerWidget.SetDirty();
             };
             base.Awake();
         }
@@ -111,7 +110,11 @@ namespace com.cratesmith.widgets
 
                 using var button = panel.Widget<WButton>(GetValue(State.buttonPrefab, m_ButtonPrefab))
                     .State(buttonState)
+                    .Event(out EClicked clicked)
                     .BeginChildren();
+                
+                if(clicked)
+                    this.SetEvent(clicked);
                 
                 button.Widget(GetValue(State.textPrefab, m_TextPrefab))
                     .State(State.textState);

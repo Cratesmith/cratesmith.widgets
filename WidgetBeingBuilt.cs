@@ -27,9 +27,6 @@ namespace com.cratesmith.widgets
             return new WidgetBuilder(widget, owner);
         }
         
-        public bool HasEvent<T>() where T: struct, IWidgetEvent => widget.HasEvent<T>();
-        public bool HasStatus<T>(out T status) where T: struct, IWidgetEvent => widget.HasEvent(out status);
-        
         public WidgetBeingBuilt<TWidget> Sorting(int group)
         {
             ((WidgetBuilder.ISecret)widget).SetSorting(new WidgetSorting(group, widget.Sorting.index));
@@ -39,6 +36,19 @@ namespace com.cratesmith.widgets
         public WidgetBeingBuilt<TWidget> Sorting(int group, int index)
         {
             ((WidgetBuilder.ISecret)widget).SetSorting(new WidgetSorting(group, index));
+            return this;
+        }
+        
+        public WidgetBeingBuilt<TWidget> Event<TEvent>()
+            where TEvent : struct, IWidgetEvent
+        {
+            if (widget is IWidgetHasEvent<TEvent>)
+            {
+                 ((WidgetBuilder.ISecret)widget).SubscribeAndGetEvent<TEvent>();
+            } else
+            {
+                widget.LogWarning($"{widget} doesn't support event type {typeof(TEvent).Name}");
+            }
             return this;
         }
     }
@@ -54,5 +64,17 @@ namespace com.cratesmith.widgets
             
             return _widgetBuild;
         }
+        
+        public static WidgetBeingBuilt<TWidget> Event<TWidget,TEvent>(in this WidgetBeingBuilt<TWidget> _widgetBuild, out TEvent eventData)
+            where TWidget:WidgetBehaviour, IWidgetHasEvent<TEvent>
+            where TEvent : struct, IWidgetEvent
+        {
+            eventData = Is.Spawned(_widgetBuild.widget) 
+                ? ((WidgetBuilder.ISecret)_widgetBuild.widget).SubscribeAndGetEvent<TEvent>()
+                : default;
+        
+            return _widgetBuild;
+        }
+
     }
 }
