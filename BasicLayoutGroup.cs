@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+﻿#if UNITY_EDITOR
+using UnityEditor;
+#endif
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace com.cratesmith.widgets
@@ -68,5 +71,12 @@ namespace com.cratesmith.widgets
         {
             SetChildrenAlongAxis(1, m_IsVertical);
         }
+        
+#if UNITY_EDITOR
+        [CustomEditor(typeof(BasicLayoutGroup),true)]
+        public class Inspector : Editor
+        {
+        }
+#endif
     }
 }

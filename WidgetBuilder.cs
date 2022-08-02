@@ -87,7 +87,8 @@ namespace com.cratesmith.widgets
                     && Is.Spawned(m_ParentWidget.ParentWidget) 
                     && !m_ParentWidget.ParentWidget.IsRefreshing)
                 {
-                    m_ParentWidget.ParentWidget.SetDirty();
+                    m_ParentWidget.ParentWidget.SortChildren();
+                    //m_ParentWidget.ParentWidget.SetDirty(true);
                 }
             }
         }
