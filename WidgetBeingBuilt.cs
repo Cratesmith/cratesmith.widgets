@@ -91,5 +91,15 @@ namespace com.cratesmith.widgets
             return _widgetBuild;
         }
 
+        public static WidgetBeingBuilt<TWidget> Event<TWidget,TEvent>(in this WidgetBeingBuilt<TWidget> _widgetBuild, out TEvent eventData, out bool hasEvent)
+            where TWidget:WidgetBehaviour, IWidgetHasEvent<TEvent>
+            where TEvent : struct, IWidgetEvent
+        {
+            (eventData, hasEvent) = Is.Spawned(_widgetBuild.widget)
+                ? (((WidgetBuilder.ISecret)_widgetBuild.widget).SubscribeAndGetEvent<TEvent>(), _widgetBuild.widget.HasEvent<TEvent>())
+                : (default, false);
+            
+            return _widgetBuild;
+        }
     }
 }
