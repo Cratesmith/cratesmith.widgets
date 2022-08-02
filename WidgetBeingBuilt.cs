@@ -39,6 +39,21 @@ namespace com.cratesmith.widgets
             return this;
         }
         
+        public WidgetBeingBuilt<TWidget> Event<TEvent>(out bool hasEvent)
+            where TEvent : struct, IWidgetEvent
+        {
+            if (widget is IWidgetHasEvent<TEvent>)
+            {
+                var evt = ((WidgetBuilder.ISecret)widget).SubscribeAndGetEvent<TEvent>();
+                hasEvent = evt.CheckValid();
+            } else
+            {
+                widget.LogWarning($"{widget} doesn't support event type {typeof(TEvent).Name}");
+                hasEvent = false;
+            }
+            return this;
+        }
+        
         public WidgetBeingBuilt<TWidget> Event<TEvent>()
             where TEvent : struct, IWidgetEvent
         {

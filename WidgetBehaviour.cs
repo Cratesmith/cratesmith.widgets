@@ -28,6 +28,7 @@ using Object = UnityEngine.Object;
 using UnityEditor;
 #endif
 
+
 namespace com.cratesmith.widgets
 {
 	/// <summary>
@@ -98,7 +99,12 @@ namespace com.cratesmith.widgets
 	public abstract class WidgetBehaviour
 		: MonoBehaviour
 		, WidgetBuilder.ISecret
-		, IWidgetHasEvent<EHovered>, IPointerEnterHandler, IPointerExitHandler
+		, IWidgetHasEvent<EHovered>
+		, IPointerEnterHandler
+		, IPointerExitHandler
+#if UNITY_2021_1_OR_NEWER
+		, IPointerMoveHandler
+#endif
 	{
 		internal interface ITemplateMethods
 		{
@@ -879,16 +885,56 @@ namespace com.cratesmith.widgets
 		{
             return $"{name}:{WidgetIndex}:{(Despawned?"y":(IsDespawning?"n*":"n"))}";
 		}
+		
+#if UNITY_2021_1_OR_NEWER
+		public void OnPointerMove(PointerEventData eventData)
+		{
+			if (HasEvent<EHovered>())
+			{
+				this.SetEvent(new EHovered()
+				{
+					hovered = true,
+					position = eventData.position,
+				});
+			}
+		}
+#endif
+		
 		public void OnPointerExit(PointerEventData eventData)
 		{
 			ClearEvent<EHovered>();
 		}
 		public void OnPointerEnter(PointerEventData eventData)
 		{
-			if(HasRefreshed)
-				this.SetEvent(default(EHovered));
+			if (HasRefreshed)
+			{
+				this.SetEvent(new EHovered()
+				{
+					hovered = true,
+					position = eventData.position,
+				});
+#if !UNITY_2021_1_OR_NEWER
+				StartCoroutine(HoverRoutine());
+#endif
+			}
 		}
+		
+#if !UNITY_2021_1_OR_NEWER
+		IEnumerator HoverRoutine()
+		{
+			while (HasEvent<EHovered>())
+			{
+				this.SetEvent(new EHovered()
+				{
+					hovered = true,
+					position = Input.mousePosition,
+				});
 
+				yield return null;
+			}
+		}
+#endif
+		
 		[Conditional("WIDGETS_LOG_ERROR")]
         public void LogError(string message) => Log(LogLevel.Error, message);
 
@@ -926,6 +972,22 @@ namespace com.cratesmith.widgets
 					Debug.Log(message, this);
 					return;
 			}
+		}
+		
+		public bool HasEvent<T>() where T : struct, IWidgetEvent
+		{
+			return (this is IWidgetHasEvent<T> secret && secret.EventStorage.Get(out var _));
+		}
+
+		public bool HasEvent<T>(out T status) where T : struct, IWidgetEvent
+		{
+			if (this is IWidgetHasEvent<T> secret 
+			    && secret.EventStorage.Get(out status))
+			{
+				return true;
+			}
+			status = default;
+			return false;
 		}
 
 		public void ClearEvent<T>() where T : struct, IWidgetEvent
